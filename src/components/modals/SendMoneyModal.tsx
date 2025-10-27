@@ -129,7 +129,11 @@ export const SendMoneyModal = ({ open, onOpenChange }: SendMoneyModalProps) => {
       <ContactSelectModal
         open={showContacts}
         onOpenChange={setShowContacts}
-        onSelectContact={(contact) => setRecipient(contact.name)}
+        onSelectContact={(contact) => {
+          setRecipient(contact.name);
+          setShowContacts(false);
+          onOpenChange(false);
+        }}
       />
 
       <TransactionConfirmModal

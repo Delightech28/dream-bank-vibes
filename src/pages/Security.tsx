@@ -3,9 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ChevronLeft, Lock, Fingerprint, Smartphone, Key, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ChangePinModal } from "@/components/modals/ChangePinModal";
+import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
+import { useState } from "react";
 
 const Security = () => {
   const navigate = useNavigate();
+  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   return (
     <div className="pb-24 md:pb-8 min-h-screen">
@@ -48,7 +53,10 @@ const Security = () => {
               <Switch defaultChecked />
             </div>
 
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <button 
+              onClick={() => setShowChangePinModal(true)}
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
                   <Lock className="w-5 h-5 text-accent" />
@@ -60,7 +68,10 @@ const Security = () => {
               </div>
             </button>
 
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <button 
+              onClick={() => setShowChangePasswordModal(true)}
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Key className="w-5 h-5 text-primary" />
@@ -120,6 +131,9 @@ const Security = () => {
           </CardContent>
         </Card>
       </div>
+
+      <ChangePinModal open={showChangePinModal} onOpenChange={setShowChangePinModal} />
+      <ChangePasswordModal open={showChangePasswordModal} onOpenChange={setShowChangePasswordModal} />
     </div>
   );
 };

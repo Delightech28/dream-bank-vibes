@@ -34,9 +34,24 @@ const PersonalInfo = () => {
               <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
-            <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
+            <input
+              type="file"
+              id="profile-picture"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  console.log("Selected file:", file);
+                }
+              }}
+            />
+            <label
+              htmlFor="profile-picture"
+              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
+            >
               <Camera className="w-4 h-4" />
-            </button>
+            </label>
           </div>
         </div>
 
@@ -57,7 +72,7 @@ const PersonalInfo = () => {
               <Label htmlFor="phone">Phone Number</Label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <span className="text-lg">🇳🇬</span>
+                  <span className="text-xl">🇳🇬</span>
                   <span className="text-sm text-muted-foreground">+234</span>
                 </div>
                 <Input 
