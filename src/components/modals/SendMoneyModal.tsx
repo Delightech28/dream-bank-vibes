@@ -1,0 +1,115 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { User, Search } from "lucide-react";
+import { toast } from "sonner";
+
+interface SendMoneyModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const SendMoneyModal = ({ open, onOpenChange }: SendMoneyModalProps) => {
+  const [amount, setAmount] = useState("");
+  const [recipient, setRecipient] = useState("");
+
+  const handleSend = () => {
+    if (!amount || !recipient) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    toast.success(`₦${amount} sent to ${recipient} 🎉`);
+    onOpenChange(false);
+    setAmount("");
+    setRecipient("");
+  };
+
+  const quickContacts = [
+    { name: "Mom", avatar: "👩" },
+    { name: "John", avatar: "👨" },
+    { name: "Sarah", avatar: "👩‍💼" },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Send Money</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Quick Contacts */}
+          <div>
+            <Label className="text-sm text-muted-foreground mb-3 block">Quick Send</Label>
+            <div className="flex gap-4">
+              {quickContacts.map((contact) => (
+                <button
+                  key={contact.name}
+                  onClick={() => setRecipient(contact.name)}
+                  className="flex flex-col items-center gap-2 hover:scale-110 transition-transform"
+                >
+                  <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-2xl">
+                    {contact.avatar}
+                  </div>
+                  <span className="text-xs">{contact.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Recipient */}
+          <div className="space-y-2">
+            <Label htmlFor="recipient">Recipient</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="recipient"
+                placeholder="Search or enter account number"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-3 text-muted-foreground">₦</span>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="pl-7"
+              />
+            </div>
+          </div>
+
+          {/* Quick Amount Buttons */}
+          <div className="flex gap-2">
+            {[1000, 5000, 10000].map((val) => (
+              <Button
+                key={val}
+                variant="outline"
+                size="sm"
+                onClick={() => setAmount(val.toString())}
+                className="flex-1"
+              >
+                ₦{val.toLocaleString()}
+              </Button>
+            ))}
+          </div>
+
+          <Button onClick={handleSend} className="w-full" variant="gradient" size="lg">
+            Send Money
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

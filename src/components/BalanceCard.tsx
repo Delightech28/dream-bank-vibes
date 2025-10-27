@@ -25,7 +25,7 @@ export const BalanceCard = ({ balance }: BalanceCardProps) => {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-4xl font-bold mb-2 animate-balance-up">
-            {showBalance ? `$${balance.toLocaleString()}` : "••••••"}
+            {showBalance ? `₦${balance.toLocaleString()}` : "••••••"}
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="w-4 h-4 text-primary" />

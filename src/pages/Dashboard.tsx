@@ -1,13 +1,23 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, ArrowDownLeft, Plus, CreditCard, TrendingUp, Zap } from "lucide-react";
 import { QuickAction } from "@/components/QuickAction";
 import { TransactionItem } from "@/components/TransactionItem";
 import { BalanceCard } from "@/components/BalanceCard";
+import { SendMoneyModal } from "@/components/modals/SendMoneyModal";
+import { RequestMoneyModal } from "@/components/modals/RequestMoneyModal";
+import { TopUpModal } from "@/components/modals/TopUpModal";
+import { BillsModal } from "@/components/modals/BillsModal";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [balance] = useState(24580.50);
+  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [topUpModalOpen, setTopUpModalOpen] = useState(false);
+  const [billsModalOpen, setBillsModalOpen] = useState(false);
 
   const transactions: Array<{
     id: number;
@@ -33,10 +43,18 @@ const Dashboard = () => {
       <div className="px-4 mb-6">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-4 gap-3">
-          <QuickAction icon={<ArrowUpRight className="w-5 h-5" />} label="Send" />
-          <QuickAction icon={<ArrowDownLeft className="w-5 h-5" />} label="Request" />
-          <QuickAction icon={<Plus className="w-5 h-5" />} label="Top Up" />
-          <QuickAction icon={<Zap className="w-5 h-5" />} label="Bills" />
+          <div onClick={() => setSendModalOpen(true)}>
+            <QuickAction icon={<ArrowUpRight className="w-5 h-5" />} label="Send" />
+          </div>
+          <div onClick={() => setRequestModalOpen(true)}>
+            <QuickAction icon={<ArrowDownLeft className="w-5 h-5" />} label="Request" />
+          </div>
+          <div onClick={() => setTopUpModalOpen(true)}>
+            <QuickAction icon={<Plus className="w-5 h-5" />} label="Top Up" />
+          </div>
+          <div onClick={() => setBillsModalOpen(true)}>
+            <QuickAction icon={<Zap className="w-5 h-5" />} label="Bills" />
+          </div>
         </div>
       </div>
 
@@ -44,7 +62,7 @@ const Dashboard = () => {
       <div className="px-4 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">My Cards</h2>
-          <Button variant="ghost" size="sm">View All</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/cards")}>View All</Button>
         </div>
         <div className="relative h-48 gradient-primary rounded-2xl shadow-glow p-6 text-white overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
@@ -54,7 +72,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-xs opacity-80 mb-1">Total Balance</p>
-                <p className="text-2xl font-bold">${balance.toLocaleString()}</p>
+                <p className="text-2xl font-bold">₦{balance.toLocaleString()}</p>
               </div>
               <CreditCard className="w-8 h-8 opacity-80" />
             </div>
@@ -81,7 +99,7 @@ const Dashboard = () => {
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Transactions</h2>
-          <Button variant="ghost" size="sm">See All</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/transactions")}>See All</Button>
         </div>
         <Card>
           <CardContent className="p-0">
@@ -93,6 +111,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modals */}
+      <SendMoneyModal open={sendModalOpen} onOpenChange={setSendModalOpen} />
+      <RequestMoneyModal open={requestModalOpen} onOpenChange={setRequestModalOpen} />
+      <TopUpModal open={topUpModalOpen} onOpenChange={setTopUpModalOpen} />
+      <BillsModal open={billsModalOpen} onOpenChange={setBillsModalOpen} />
     </div>
   );
 };

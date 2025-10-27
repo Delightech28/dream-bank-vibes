@@ -57,7 +57,7 @@ const Cards = () => {
                 
                 <div>
                   <p className="text-xs opacity-80 mb-1">Balance</p>
-                  <p className="text-3xl font-bold mb-4">${card.balance.toLocaleString()}</p>
+                  <p className="text-3xl font-bold mb-4">₦{card.balance.toLocaleString()}</p>
                   
                   <div className="flex items-center gap-4 mb-3">
                     <div className="flex-1">
@@ -115,7 +115,7 @@ const Cards = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Daily Spending</span>
-                  <span className="font-medium">$2,450 / $5,000</span>
+                  <span className="font-medium">₦2,450 / ₦5,000</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary w-[49%] rounded-full" />
@@ -125,7 +125,7 @@ const Cards = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">ATM Withdrawals</span>
-                  <span className="font-medium">$300 / $1,000</span>
+                  <span className="font-medium">₦300 / ₦1,000</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-secondary w-[30%] rounded-full" />

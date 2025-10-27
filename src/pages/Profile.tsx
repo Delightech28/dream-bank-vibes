@@ -2,14 +2,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronRight, User, Bell, Shield, HelpCircle, Settings, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const navigate = useNavigate();
+  
   const menuItems = [
-    { icon: <User className="w-5 h-5" />, label: "Personal Information", badge: null },
-    { icon: <Bell className="w-5 h-5" />, label: "Notifications", badge: "3" },
-    { icon: <Shield className="w-5 h-5" />, label: "Security", badge: null },
-    { icon: <Settings className="w-5 h-5" />, label: "Settings", badge: null },
-    { icon: <HelpCircle className="w-5 h-5" />, label: "Help & Support", badge: null },
+    { icon: <User className="w-5 h-5" />, label: "Personal Information", badge: null, path: "/personal-info" },
+    { icon: <Bell className="w-5 h-5" />, label: "Notifications", badge: "3", path: "/notifications" },
+    { icon: <Shield className="w-5 h-5" />, label: "Security", badge: null, path: "/security" },
+    { icon: <Settings className="w-5 h-5" />, label: "Settings", badge: null, path: "/settings" },
+    { icon: <HelpCircle className="w-5 h-5" />, label: "Help & Support", badge: null, path: "/help-support" },
   ];
 
   return (
@@ -46,7 +49,7 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground">Transactions</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">$24.5K</p>
+                <p className="text-2xl font-bold">₦24.5K</p>
                 <p className="text-xs text-muted-foreground">Balance</p>
               </div>
             </div>
@@ -59,6 +62,7 @@ const Profile = () => {
             {menuItems.map((item, index) => (
               <button
                 key={index}
+                onClick={() => navigate(item.path)}
                 className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-b last:border-b-0"
               >
                 <div className="flex items-center gap-3">

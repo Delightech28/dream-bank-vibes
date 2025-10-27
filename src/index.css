@@ -98,6 +98,14 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  
+  html {
+    color-scheme: dark;
+  }
+  
+  body {
+    @apply dark;
+  }
 }
 
 @layer utilities {
@@ -116,6 +124,10 @@ All colors MUST be HSL.
   .animate-balance-up {
     animation: balance-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  
+  .nav-item-active {
+    animation: bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
 }
 
 @keyframes balance-up {
@@ -126,5 +138,17 @@ All colors MUST be HSL.
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
   }
 }

@@ -46,14 +46,14 @@ const Transactions = () => {
           <Card className="shadow-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Income</p>
-              <p className="text-xl font-bold text-primary">+$6,250</p>
+              <p className="text-xl font-bold text-primary">+₦6,250</p>
               <p className="text-xs text-muted-foreground mt-1">This month</p>
             </CardContent>
           </Card>
           <Card className="shadow-purple-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-              <p className="text-xl font-bold text-secondary">-$481</p>
+              <p className="text-xl font-bold text-secondary">-₦481</p>
               <p className="text-xs text-muted-foreground mt-1">This month</p>
             </CardContent>
           </Card>
