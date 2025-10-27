@@ -57,10 +57,14 @@ export const RequestMoneyModal = ({ open, onOpenChange }: RequestMoneyModalProps
               <span className="absolute left-3 top-3 text-muted-foreground">₦</span>
               <Input
                 id="req-amount"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  setAmount(val);
+                }}
                 className="pl-7"
               />
             </div>

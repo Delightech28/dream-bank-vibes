@@ -16,7 +16,7 @@ export const Layout = ({ children }: LayoutProps) => {
             <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
               <Wallet className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg">FunBank</span>
+            <span className="font-bold text-lg">Delighto</span>
           </div>
         </div>
       </header>

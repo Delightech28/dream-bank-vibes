@@ -3,8 +3,21 @@ import { TransactionItem } from "@/components/TransactionItem";
 import { Button } from "@/components/ui/button";
 import { Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Transactions = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
+
   const transactions: Array<{
     id: number;
     name: string;
@@ -25,6 +38,12 @@ const Transactions = () => {
     { id: 10, name: "Online Shopping", amount: -199.99, type: "expense", date: "Jan 21, 3:20 PM", icon: "📦" },
   ];
 
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearch = transaction.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterType === "all" || transaction.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
+
   return (
     <div className="pb-24 md:pb-8">
       <div className="px-4 pt-6 pb-4">
@@ -34,11 +53,29 @@ const Transactions = () => {
         <div className="flex gap-2 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search transactions..." className="pl-9" />
+            <Input 
+              placeholder="Search transactions..." 
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={filterType} onValueChange={setFilterType}>
+                <DropdownMenuRadioItem value="all">All Transactions</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="income">Income Only</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="expense">Expenses Only</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Stats Cards */}
@@ -62,11 +99,17 @@ const Transactions = () => {
         {/* Transaction List */}
         <Card>
           <CardContent className="p-0">
-            <div className="divide-y">
-              {transactions.map((transaction) => (
-                <TransactionItem key={transaction.id} {...transaction} />
-              ))}
-            </div>
+            {filteredTransactions.length > 0 ? (
+              <div className="divide-y">
+                {filteredTransactions.map((transaction) => (
+                  <TransactionItem key={transaction.id} {...transaction} />
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                No transactions found
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

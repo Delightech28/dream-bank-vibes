@@ -3,11 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, Camera } from "lucide-react";
+import { ChevronLeft, Camera, CalendarIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const PersonalInfo = () => {
   const navigate = useNavigate();
+  const [dateOfBirth, setDateOfBirth] = useState<Date>(new Date(1990, 0, 15));
 
   return (
     <div className="pb-24 md:pb-8 min-h-screen">
@@ -49,12 +55,49 @@ const PersonalInfo = () => {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" type="tel" defaultValue="+234 800 123 4567" />
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span className="text-lg">🇳🇬</span>
+                  <span className="text-sm text-muted-foreground">+234</span>
+                </div>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  defaultValue="800 123 4567" 
+                  className="pl-20"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <Input id="dob" type="date" defaultValue="1990-01-15" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="dob"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dateOfBirth && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateOfBirth}
+                    onSelect={(date) => date && setDateOfBirth(date)}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

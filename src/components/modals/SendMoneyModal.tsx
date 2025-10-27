@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Search } from "lucide-react";
+import { User, Search, Users } from "lucide-react";
 import { toast } from "sonner";
+import { ContactSelectModal } from "./ContactSelectModal";
+import { TransactionConfirmModal } from "./TransactionConfirmModal";
 
 interface SendMoneyModalProps {
   open: boolean;
@@ -14,12 +16,18 @@ interface SendMoneyModalProps {
 export const SendMoneyModal = ({ open, onOpenChange }: SendMoneyModalProps) => {
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [showContacts, setShowContacts] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSend = () => {
     if (!amount || !recipient) {
       toast.error("Please fill all fields");
       return;
     }
+    setShowConfirm(true);
+  };
+
+  const handleConfirmTransaction = () => {
     toast.success(`₦${amount} sent to ${recipient} 🎉`);
     onOpenChange(false);
     setAmount("");
@@ -69,8 +77,15 @@ export const SendMoneyModal = ({ open, onOpenChange }: SendMoneyModalProps) => {
                 placeholder="Search or enter account number"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-10"
               />
+              <button
+                type="button"
+                onClick={() => setShowContacts(true)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Users className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
@@ -110,6 +125,20 @@ export const SendMoneyModal = ({ open, onOpenChange }: SendMoneyModalProps) => {
           </Button>
         </div>
       </DialogContent>
+
+      <ContactSelectModal
+        open={showContacts}
+        onOpenChange={setShowContacts}
+        onSelectContact={(contact) => setRecipient(contact.name)}
+      />
+
+      <TransactionConfirmModal
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        amount={amount}
+        recipient={recipient}
+        onConfirm={handleConfirmTransaction}
+      />
     </Dialog>
   );
 };
