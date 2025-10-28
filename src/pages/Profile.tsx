@@ -1,11 +1,19 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, User, Bell, Shield, HelpCircle, Settings, LogOut } from "lucide-react";
+import { ChevronRight, User, Bell, Shield, HelpCircle, Settings, LogOut, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [userId, setUserId] = useState("");
+  const [uploading, setUploading] = useState(false);
   
   const menuItems = [
     { icon: <User className="w-5 h-5" />, label: "Personal Information", badge: null, path: "/personal-info" },
@@ -14,6 +22,113 @@ const Profile = () => {
     { icon: <Settings className="w-5 h-5" />, label: "Settings", badge: null, path: "/settings" },
     { icon: <HelpCircle className="w-5 h-5" />, label: "Help & Support", badge: null, path: "/help-support" },
   ];
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/");
+        return;
+      }
+
+      setUserId(user.id);
+      setEmail(user.email || "");
+
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+
+      if (profile) {
+        setFullName(profile.full_name || "");
+        if (profile.avatar_url) {
+          // Check if it's a storage path or a data URL
+          if (profile.avatar_url.startsWith('data:')) {
+            setAvatarUrl(profile.avatar_url);
+          } else {
+            const { data } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(profile.avatar_url);
+            setAvatarUrl(data.publicUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: filePath })
+        .eq('user_id', userId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      setAvatarUrl(data.publicUrl);
+
+      toast.success("Profile picture updated!");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Failed to log out");
+    }
+  };
 
   return (
     <div className="pb-24 md:pb-8">
@@ -24,13 +139,29 @@ const Profile = () => {
         <Card className="mb-6 shadow-glow border-0">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <Avatar className="w-20 h-20 border-4 border-primary/20">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="w-20 h-20 border-4 border-primary/20">
+                  <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
+                  <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
+                </Avatar>
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                />
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </label>
+              </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold">John Doe</h2>
-                <p className="text-sm text-muted-foreground">john.doe@example.com</p>
+                <h2 className="text-xl font-bold">{fullName || "User"}</h2>
+                <p className="text-sm text-muted-foreground">{email}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
                     Premium Member
@@ -85,7 +216,7 @@ const Profile = () => {
         </Card>
 
         {/* Logout Button */}
-        <Button variant="outline" className="w-full" size="lg">
+        <Button variant="outline" className="w-full" size="lg" onClick={handleLogout}>
           <LogOut className="w-5 h-5 mr-2" />
           Log Out
         </Button>

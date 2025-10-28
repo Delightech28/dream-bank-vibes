@@ -53,7 +53,17 @@ const PersonalInfo = () => {
         setPhoneNumber(profile.phone_number || "");
         setAddress(profile.address || "");
         setBvn(profile.bvn || "");
-        setAvatarUrl(profile.avatar_url || "");
+        if (profile.avatar_url) {
+          // Check if it's a storage path or a data URL
+          if (profile.avatar_url.startsWith('data:')) {
+            setAvatarUrl(profile.avatar_url);
+          } else {
+            const { data } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(profile.avatar_url);
+            setAvatarUrl(data.publicUrl);
+          }
+        }
         if (profile.date_of_birth) {
           setDateOfBirth(new Date(profile.date_of_birth));
         }
@@ -89,15 +99,56 @@ const PersonalInfo = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      toast.info("Profile picture updated (storage upload coming soon)");
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setAvatarUrl(data.publicUrl);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: filePath })
+        .eq('user_id', userId);
+
+      if (updateError) throw updateError;
+
+      toast.success("Profile picture updated!");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setLoading(false);
     }
   };
 
