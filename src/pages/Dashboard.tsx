@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,35 @@ import { SendMoneyModal } from "@/components/modals/SendMoneyModal";
 import { RequestMoneyModal } from "@/components/modals/RequestMoneyModal";
 import { TopUpModal } from "@/components/modals/TopUpModal";
 import { BillsModal } from "@/components/modals/BillsModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [balance] = useState(24580.50);
+  const [balance, setBalance] = useState(0);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [topUpModalOpen, setTopUpModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-wallet');
+      
+      if (error) throw error;
+      
+      if (data && data.balance) {
+        setBalance(parseFloat(data.balance));
+      }
+    } catch (error: any) {
+      console.error('Error fetching wallet:', error);
+      toast.error("Failed to load wallet balance");
+    }
+  };
 
   const transactions: Array<{
     id: number;

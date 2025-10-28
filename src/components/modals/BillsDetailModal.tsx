@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import mtnLogo from "@/assets/mtn-logo.png";
 import airtelLogo from "@/assets/airtel-logo.png";
 import gloLogo from "@/assets/glo-logo.png";
@@ -82,6 +83,7 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [detectedProvider, setDetectedProvider] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   const providers = category ? nigerianProviders[category.id as keyof typeof nigerianProviders] || [] : [];
   
@@ -91,16 +93,39 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
     setDetectedProvider(provider);
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!detectedProvider || !phoneNumber || !amount) {
       toast.error("Please fill all fields");
       return;
     }
-    toast.success(`Payment of ₦${amount} for ${category?.label} initiated! 💸`);
-    onOpenChange(false);
-    setPhoneNumber("");
-    setAmount("");
-    setDetectedProvider("");
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('vtpass-purchase', {
+        body: {
+          serviceID: detectedProvider,
+          amount: parseFloat(amount),
+          phone: phoneNumber,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`${category?.label} purchase successful! ₦${amount} has been processed.`);
+        onOpenChange(false);
+        setPhoneNumber("");
+        setAmount("");
+        setDetectedProvider("");
+      } else {
+        toast.error(data.message || "Purchase failed. Please try again.");
+      }
+    } catch (error: any) {
+      console.error('Purchase error:', error);
+      toast.error(error.message || "Failed to process purchase. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -178,8 +203,14 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
             </div>
           )}
 
-          <Button onClick={handlePayment} className="w-full" variant="gradient" size="lg">
-            Pay Now
+          <Button 
+            onClick={handlePayment} 
+            className="w-full" 
+            variant="gradient" 
+            size="lg"
+            disabled={loading}
+          >
+            {loading ? "Processing..." : "Pay Now"}
           </Button>
         </div>
       </DialogContent>
