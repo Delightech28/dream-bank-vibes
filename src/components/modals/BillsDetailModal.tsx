@@ -4,6 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
+import mtnLogo from "@/assets/mtn-logo.png";
+import airtelLogo from "@/assets/airtel-logo.png";
+import gloLogo from "@/assets/glo-logo.png";
+import nineMobileLogo from "@/assets/9mobile-logo.png";
 
 interface BillsDetailModalProps {
   open: boolean;
@@ -16,16 +20,16 @@ interface BillsDetailModalProps {
 
 const nigerianProviders = {
   airtime: [
-    { id: "mtn", name: "MTN", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/MTN_Logo.svg/200px-MTN_Logo.svg.png" },
-    { id: "glo", name: "Glo", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Glo_logo.svg/200px-Glo_logo.svg.png" },
-    { id: "airtel", name: "Airtel", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Bharti_Airtel_Limited.svg/200px-Bharti_Airtel_Limited.svg.png" },
-    { id: "9mobile", name: "9mobile", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/9mobile_logo.svg/200px-9mobile_logo.svg.png" },
+    { id: "mtn", name: "MTN", logo: mtnLogo },
+    { id: "glo", name: "Glo", logo: gloLogo },
+    { id: "airtel", name: "Airtel", logo: airtelLogo },
+    { id: "9mobile", name: "9mobile", logo: nineMobileLogo },
   ],
   data: [
-    { id: "mtn", name: "MTN", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/MTN_Logo.svg/200px-MTN_Logo.svg.png" },
-    { id: "glo", name: "Glo", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Glo_logo.svg/200px-Glo_logo.svg.png" },
-    { id: "airtel", name: "Airtel", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Bharti_Airtel_Limited.svg/200px-Bharti_Airtel_Limited.svg.png" },
-    { id: "9mobile", name: "9mobile", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/9mobile_logo.svg/200px-9mobile_logo.svg.png" },
+    { id: "mtn", name: "MTN", logo: mtnLogo },
+    { id: "glo", name: "Glo", logo: gloLogo },
+    { id: "airtel", name: "Airtel", logo: airtelLogo },
+    { id: "9mobile", name: "9mobile", logo: nineMobileLogo },
   ],
   electricity: [
     { id: "ekedc", name: "Eko Electric", logo: "https://ekedp.com/wp-content/uploads/2023/11/Eko-Electricity-Distribution-Company-Plc-logo-1.png" },
@@ -79,24 +83,19 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
                 <button
                   key={provider.id}
                   onClick={() => setSelectedProvider(provider.id)}
-                  className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                  className={`p-6 rounded-lg border-2 transition-all hover:scale-105 ${
                     selectedProvider === provider.id
                       ? "border-primary bg-primary/10"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <div className="w-full h-12 flex items-center justify-center mb-2">
+                  <div className="w-full h-20 flex items-center justify-center">
                     <img
                       src={provider.logo}
                       alt={provider.name}
                       className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = `<span class="text-xl font-bold">${provider.name}</span>`;
-                      }}
                     />
                   </div>
-                  <p className="text-xs font-medium text-center">{provider.name}</p>
                 </button>
               ))}
             </div>
