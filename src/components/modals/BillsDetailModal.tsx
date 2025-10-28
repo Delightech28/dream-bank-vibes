@@ -93,7 +93,7 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
                     <img
                       src={provider.logo}
                       alt={provider.name}
-                      className="max-w-full max-h-full object-contain"
+                      className="max-w-full max-h-full object-contain rounded-full"
                     />
                   </div>
                 </button>

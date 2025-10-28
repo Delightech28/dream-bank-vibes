@@ -152,8 +152,10 @@ const Profile = () => {
                 )}
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-bold">{fullName || "User"}</h2>
-                <p className="text-sm text-muted-foreground">{email}</p>
+                <h2 className="text-xl font-bold truncate max-w-[200px]">
+                  {fullName && fullName.length > 20 ? `${fullName.slice(0, 20)}...` : fullName || "User"}
+                </h2>
+                <p className="text-sm text-muted-foreground truncate">{email}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
                     Premium Member

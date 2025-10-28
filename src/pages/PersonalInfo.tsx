@@ -245,7 +245,7 @@ const PersonalInfo = () => {
                     id="dob"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-11",
                       !dateOfBirth && "text-muted-foreground"
                     )}
                   >
@@ -253,7 +253,7 @@ const PersonalInfo = () => {
                     {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-full p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={dateOfBirth}
@@ -265,7 +265,7 @@ const PersonalInfo = () => {
                     captionLayout="dropdown-buttons"
                     fromYear={1900}
                     toYear={new Date().getFullYear()}
-                    className="pointer-events-auto"
+                    className="pointer-events-auto rounded-lg"
                   />
                 </PopoverContent>
               </Popover>
