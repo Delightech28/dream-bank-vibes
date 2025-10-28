@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Camera, CalendarIcon } from "lucide-react";
+import { ChevronLeft, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,25 +166,23 @@ const PersonalInfo = () => {
       <div className="px-4 pt-6 space-y-6">
         {/* Profile Picture */}
         <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <Avatar className="w-24 h-24 border-4 border-primary/20">
-              <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
-              <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
-            </Avatar>
-            <input
-              type="file"
-              id="profile-picture"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <label
-              htmlFor="profile-picture"
-              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
-            >
-              <Camera className="w-4 h-4" />
-            </label>
-          </div>
+          <Avatar className="w-24 h-24 border-4 border-primary/20">
+            <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
+            <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
+          </Avatar>
+          <input
+            type="file"
+            id="profile-picture"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <label
+            htmlFor="profile-picture"
+            className="text-sm text-primary hover:underline cursor-pointer font-medium"
+          >
+            {loading ? "Uploading..." : "Change Profile Picture"}
+          </label>
         </div>
 
         {/* Form Fields */}
@@ -253,6 +251,9 @@ const PersonalInfo = () => {
                       date > new Date() || date < new Date("1900-01-01")
                     }
                     initialFocus
+                    captionLayout="dropdown-buttons"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
                     className="pointer-events-auto"
                   />
                 </PopoverContent>
@@ -272,8 +273,15 @@ const PersonalInfo = () => {
               <Label htmlFor="bvn">BVN</Label>
               <Input 
                 id="bvn" 
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={bvn}
-                onChange={(e) => setBvn(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setBvn(value);
+                }}
+                maxLength={11}
               />
             </div>
           </CardContent>

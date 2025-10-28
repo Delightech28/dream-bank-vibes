@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, User, Bell, Shield, HelpCircle, Settings, LogOut, Camera } from "lucide-react";
+import { ChevronRight, User, Bell, Shield, HelpCircle, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -139,26 +139,10 @@ const Profile = () => {
         <Card className="mb-6 shadow-glow border-0">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="w-20 h-20 border-4 border-primary/20">
-                  <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
-                  <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
-                </Avatar>
-                <input
-                  type="file"
-                  id="avatar-upload"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                />
-                <label
-                  htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                </label>
-              </div>
+              <Avatar className="w-20 h-20 border-4 border-primary/20">
+                <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
+                <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
+              </Avatar>
               <div className="flex-1">
                 <h2 className="text-xl font-bold">{fullName || "User"}</h2>
                 <p className="text-sm text-muted-foreground">{email}</p>
