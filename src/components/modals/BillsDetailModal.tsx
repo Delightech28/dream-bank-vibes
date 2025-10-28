@@ -48,23 +48,59 @@ const nigerianProviders = {
   ],
 };
 
+const detectProvider = (phone: string): string => {
+  // Remove any non-digit characters
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Get first 4 digits
+  const prefix = cleaned.substring(0, 4);
+  
+  // MTN prefixes
+  if (['0803', '0806', '0810', '0813', '0814', '0816', '0703', '0706', '0903', '0906', '0913', '0916'].includes(prefix)) {
+    return 'mtn';
+  }
+  
+  // Glo prefixes
+  if (['0805', '0807', '0811', '0815', '0705', '0905', '0915'].includes(prefix)) {
+    return 'glo';
+  }
+  
+  // Airtel prefixes
+  if (['0802', '0808', '0812', '0701', '0708', '0901', '0902', '0904', '0907', '0912'].includes(prefix)) {
+    return 'airtel';
+  }
+  
+  // 9mobile prefixes
+  if (['0809', '0817', '0818', '0909', '0908'].includes(prefix)) {
+    return '9mobile';
+  }
+  
+  return '';
+};
+
 export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailModalProps) => {
-  const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [detectedProvider, setDetectedProvider] = useState<string>("");
 
   const providers = category ? nigerianProviders[category.id as keyof typeof nigerianProviders] || [] : [];
+  
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    const provider = detectProvider(value);
+    setDetectedProvider(provider);
+  };
 
   const handlePayment = () => {
-    if (!selectedProvider || !phoneNumber || !amount) {
+    if (!detectedProvider || !phoneNumber || !amount) {
       toast.error("Please fill all fields");
       return;
     }
     toast.success(`Payment of ₦${amount} for ${category?.label} initiated! 💸`);
     onOpenChange(false);
-    setSelectedProvider("");
     setPhoneNumber("");
     setAmount("");
+    setDetectedProvider("");
   };
 
   return (
@@ -75,43 +111,34 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Provider Selection */}
-          <div className="space-y-3">
-            <Label>Select Provider</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {providers.map((provider) => (
-                <button
-                  key={provider.id}
-                  onClick={() => setSelectedProvider(provider.id)}
-                  className={`p-6 rounded-lg border-2 transition-all hover:scale-105 ${
-                    selectedProvider === provider.id
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="w-full h-20 flex items-center justify-center">
-                    <img
-                      src={provider.logo}
-                      alt={provider.name}
-                      className="max-w-full max-h-full object-contain rounded-full"
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Phone Number / Account Number */}
+          {/* Phone Number / Account Number with Provider Detection */}
           <div className="space-y-2">
             <Label htmlFor="phone">
               {category?.id === "airtime" || category?.id === "data" ? "Phone Number" : "Account Number"}
             </Label>
-            <Input
-              id="phone"
-              placeholder={category?.id === "airtime" || category?.id === "data" ? "080 1234 5678" : "Enter account number"}
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-            />
+            <div className="relative">
+              {detectedProvider && (category?.id === "airtime" || category?.id === "data") && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted">
+                  <img
+                    src={providers.find(p => p.id === detectedProvider)?.logo}
+                    alt={providers.find(p => p.id === detectedProvider)?.name}
+                    className="w-6 h-6 object-contain rounded-full"
+                  />
+                </div>
+              )}
+              <Input
+                id="phone"
+                placeholder={category?.id === "airtime" || category?.id === "data" ? "080 1234 5678" : "Enter account number"}
+                value={phoneNumber}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                className={detectedProvider && (category?.id === "airtime" || category?.id === "data") ? "pl-14" : ""}
+              />
+            </div>
+            {detectedProvider && (category?.id === "airtime" || category?.id === "data") && (
+              <p className="text-xs text-muted-foreground">
+                {providers.find(p => p.id === detectedProvider)?.name} detected
+              </p>
+            )}
           </div>
 
           {/* Amount */}
