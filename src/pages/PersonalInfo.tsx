@@ -1,19 +1,105 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, Camera, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, Camera, CalendarIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const PersonalInfo = () => {
   const navigate = useNavigate();
-  const [dateOfBirth, setDateOfBirth] = useState<Date>(new Date(1990, 0, 15));
+  const [dateOfBirth, setDateOfBirth] = useState<Date>();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [bvn, setBvn] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string>("");
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/");
+        return;
+      }
+
+      setUserId(user.id);
+      setEmail(user.email || "");
+
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+
+      if (profile) {
+        setFullName(profile.full_name || "");
+        setPhoneNumber(profile.phone_number || "");
+        setAddress(profile.address || "");
+        setBvn(profile.bvn || "");
+        setAvatarUrl(profile.avatar_url || "");
+        if (profile.date_of_birth) {
+          setDateOfBirth(new Date(profile.date_of_birth));
+        }
+      }
+    } catch (error: any) {
+      toast.error("Failed to load profile");
+      console.error(error);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          phone_number: phoneNumber,
+          date_of_birth: dateOfBirth?.toISOString().split('T')[0],
+          address: address,
+          bvn: bvn,
+          avatar_url: avatarUrl,
+        })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      toast.error("Failed to update profile");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast.info("Profile picture updated (storage upload coming soon)");
+    }
+  };
 
   return (
     <div className="pb-24 md:pb-8 min-h-screen">
@@ -31,20 +117,15 @@ const PersonalInfo = () => {
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <Avatar className="w-24 h-24 border-4 border-primary/20">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}`} />
+              <AvatarFallback>{fullName.split(' ').map(n => n[0]).join('').toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
             <input
               type="file"
               id="profile-picture"
               accept="image/*"
               className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  console.log("Selected file:", file);
-                }
-              }}
+              onChange={handleFileChange}
             />
             <label
               htmlFor="profile-picture"
@@ -60,12 +141,23 @@ const PersonalInfo = () => {
           <CardContent className="p-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullname">Full Name</Label>
-              <Input id="fullname" defaultValue="John Doe" />
+              <Input 
+                id="fullname" 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" defaultValue="john.doe@example.com" />
+              <Input 
+                id="email" 
+                type="email" 
+                value={email}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
             </div>
 
             <div className="space-y-2">
@@ -78,7 +170,8 @@ const PersonalInfo = () => {
                 <Input 
                   id="phone" 
                   type="tel" 
-                  defaultValue="800 123 4567" 
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
                   className="pl-20"
                 />
               </div>
@@ -104,7 +197,7 @@ const PersonalInfo = () => {
                   <Calendar
                     mode="single"
                     selected={dateOfBirth}
-                    onSelect={(date) => date && setDateOfBirth(date)}
+                    onSelect={setDateOfBirth}
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
@@ -117,18 +210,32 @@ const PersonalInfo = () => {
 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" defaultValue="123 Victoria Island, Lagos" />
+              <Input 
+                id="address" 
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bvn">BVN</Label>
-              <Input id="bvn" defaultValue="221*****789" disabled />
+              <Input 
+                id="bvn" 
+                value={bvn}
+                onChange={(e) => setBvn(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Button className="w-full" variant="gradient" size="lg">
-          Save Changes
+        <Button 
+          className="w-full" 
+          variant="gradient" 
+          size="lg"
+          onClick={handleSaveChanges}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>
