@@ -19,24 +19,13 @@ export const PaystackPaymentModal = ({
   onSuccess 
 }: PaystackPaymentModalProps) => {
   
-  useEffect(() => {
-    if (!open || !amount) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    document.body.appendChild(script);
-
-    script.onload = () => {
-      initializePayment();
-    };
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [open, amount]);
-
   const initializePayment = () => {
+    if (!(window as any).PaystackPop) {
+      toast.error('Payment system not loaded. Please try again.');
+      onOpenChange(false);
+      return;
+    }
+
     const handler = (window as any).PaystackPop.setup({
       key: 'pk_live_13fdc085a6a3000f1a9f0cfb919c2c732ecf5db1',
       email: email,
@@ -100,13 +89,48 @@ export const PaystackPaymentModal = ({
         }
       },
       onClose: () => {
-        toast.error('Payment cancelled');
         onOpenChange(false);
       }
     });
 
     handler.openIframe();
+    // Close the loading modal once iframe opens
+    onOpenChange(false);
   };
+  
+  useEffect(() => {
+    if (!open || !amount) return;
+
+    // Check if script is already loaded
+    if ((window as any).PaystackPop) {
+      initializePayment();
+      return;
+    }
+
+    // Load script if not present
+    const existingScript = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => {
+        initializePayment();
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    
+    script.onload = () => {
+      initializePayment();
+    };
+
+    script.onerror = () => {
+      toast.error('Failed to load payment system. Please try again.');
+      onOpenChange(false);
+    };
+
+    document.body.appendChild(script);
+  }, [open, amount]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
