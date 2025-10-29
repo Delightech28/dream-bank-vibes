@@ -38,7 +38,7 @@ export const PaystackPaymentModal = ({
 
   const initializePayment = () => {
     const handler = (window as any).PaystackPop.setup({
-      key: 'pk_test_xxxxxxxxxxxxx', // Replace with your Paystack public key
+      key: 'pk_live_13fdc085a6a3000f1a9f0cfb919c2c732ecf5db1',
       email: email,
       amount: parseFloat(amount) * 100, // Convert to kobo
       currency: 'NGN',
