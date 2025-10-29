@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Building2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { PaystackPaymentModal } from "./PaystackPaymentModal";
 
-type CardType = "visa" | "mastercard" | "amex" | "discover" | "unknown";
+type CardType = "visa" | "mastercard" | "amex" | "discover" | "verve" | "unknown";
 
 const detectCardType = (number: string): CardType => {
   const cleaned = number.replace(/\s/g, '');
@@ -15,6 +17,7 @@ const detectCardType = (number: string): CardType => {
   if (/^5[1-5]/.test(cleaned)) return "mastercard";
   if (/^3[47]/.test(cleaned)) return "amex";
   if (/^6(?:011|5)/.test(cleaned)) return "discover";
+  if (/^(506|507|650|6500)/.test(cleaned)) return "verve";
   
   return "unknown";
 };
@@ -25,9 +28,23 @@ const getCardTypeDisplay = (type: CardType): string => {
     mastercard: "Mastercard",
     amex: "American Express",
     discover: "Discover",
+    verve: "Verve",
     unknown: ""
   };
   return types[type];
+};
+
+const getCardIcon = (type: CardType) => {
+  const iconClass = "w-8 h-5 rounded border border-border bg-background flex items-center justify-center text-xs font-bold";
+  const icons = {
+    visa: <div className={`${iconClass} text-blue-600`}>VISA</div>,
+    mastercard: <div className={`${iconClass} text-red-600`}>MC</div>,
+    amex: <div className={`${iconClass} text-blue-500`}>AMEX</div>,
+    discover: <div className={`${iconClass} text-orange-600`}>DISC</div>,
+    verve: <div className={`${iconClass} text-primary`}>VERVE</div>,
+    unknown: null
+  };
+  return icons[type];
 };
 
 interface TopUpModalProps {
@@ -42,10 +59,22 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
   const [cvv, setCvv] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cardType, setCardType] = useState<CardType>("unknown");
+  const [userEmail, setUserEmail] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     setCardType(detectCardType(cardNumber));
   }, [cardNumber]);
+
+  useEffect(() => {
+    const getUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    getUserEmail();
+  }, []);
 
   const methods = [
     { id: "card", label: "Debit Card", icon: CreditCard },
@@ -84,14 +113,26 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
         toast.error(`CVV must be ${maxCvvLength} digits`);
         return;
       }
+
+      // Open payment modal for card payment
+      setPaymentModalOpen(true);
+    } else {
+      toast.success(`Top up of ₦${amount} initiated 💳`);
+      onOpenChange(false);
+      resetForm();
     }
-    
-    toast.success(`Top up of ₦${amount} initiated 💳`);
-    onOpenChange(false);
+  };
+
+  const resetForm = () => {
     setAmount("");
     setCardNumber("");
     setCvv("");
     setExpiry("");
+  };
+
+  const handlePaymentSuccess = () => {
+    resetForm();
+    window.location.reload(); // Refresh to show updated balance
   };
 
   return (
@@ -167,17 +208,25 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
                     </span>
                   )}
                 </div>
-                <Input
-                  id="card-number"
-                  placeholder="1234 5678 9012 3456"
-                  value={cardNumber}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 19);
-                    const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
-                    setCardNumber(formatted);
-                  }}
-                  maxLength={23}
-                />
+                <div className="relative">
+                  <Input
+                    id="card-number"
+                    placeholder="1234 5678 9012 3456"
+                    value={cardNumber}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 19);
+                      const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+                      setCardNumber(formatted);
+                    }}
+                    maxLength={23}
+                    className="pr-12"
+                  />
+                  {cardType !== "unknown" && cardNumber.length > 4 && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {getCardIcon(cardType)}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -259,6 +308,14 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
           </Button>
         </div>
       </DialogContent>
+
+      <PaystackPaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        amount={amount}
+        email={userEmail}
+        onSuccess={handlePaymentSuccess}
+      />
     </Dialog>
   );
 };

@@ -27,16 +27,27 @@ const Dashboard = () => {
 
   const fetchWalletBalance = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-wallet');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user');
+        return;
+      }
+
+      const { data: wallet, error } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
       
       if (error) throw error;
       
-      if (data && data.balance) {
-        setBalance(parseFloat(data.balance));
+      if (wallet) {
+        setBalance(wallet.balance);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching wallet:', error);
-      toast.error("Failed to load wallet balance");
+      toast.error('Failed to load wallet balance');
     }
   };
 
