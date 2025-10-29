@@ -3,7 +3,10 @@ import { TransactionItem } from "@/components/TransactionItem";
 import { Button } from "@/components/ui/button";
 import { Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,35 +17,75 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: string;
+  created_at: string;
+  status: string;
+  provider?: string;
+}
+
 const Transactions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const transactions: Array<{
-    id: number;
-    name: string;
-    amount: number;
-    type: "income" | "expense";
-    date: string;
-    icon: string;
-  }> = [
-    { id: 1, name: "Salary Deposit", amount: 5200, type: "income", date: "Today, 10:30 AM", icon: "💰" },
-    { id: 2, name: "Netflix Subscription", amount: -15.99, type: "expense", date: "Yesterday, 3:20 PM", icon: "🎬" },
-    { id: 3, name: "Grocery Store", amount: -127.50, type: "expense", date: "Yesterday, 11:45 AM", icon: "🛒" },
-    { id: 4, name: "Transfer from Mom", amount: 200, type: "income", date: "Jan 24, 4:15 PM", icon: "💝" },
-    { id: 5, name: "Coffee Shop", amount: -4.50, type: "expense", date: "Jan 24, 8:30 AM", icon: "☕" },
-    { id: 6, name: "Uber Ride", amount: -23.80, type: "expense", date: "Jan 23, 7:45 PM", icon: "🚗" },
-    { id: 7, name: "Freelance Payment", amount: 850, type: "income", date: "Jan 23, 2:00 PM", icon: "💼" },
-    { id: 8, name: "Restaurant", amount: -65.00, type: "expense", date: "Jan 22, 8:30 PM", icon: "🍽️" },
-    { id: 9, name: "Gym Membership", amount: -45.00, type: "expense", date: "Jan 22, 6:00 AM", icon: "💪" },
-    { id: 10, name: "Online Shopping", amount: -199.99, type: "expense", date: "Jan 21, 3:20 PM", icon: "📦" },
-  ];
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTransactionIcon = (type: string, provider?: string) => {
+    if (type === 'airtime' || type === 'data') return '📱';
+    if (type === 'electricity') return '⚡';
+    if (type === 'cable') return '📺';
+    if (type === 'water') return '💧';
+    if (type === 'topup') return '💰';
+    return '📦';
+  };
 
   const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch = transaction.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterType === "all" || transaction.type === filterType;
+    const matchesSearch = transaction.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterType === "all" || 
+      (filterType === "income" && transaction.type === "topup") ||
+      (filterType === "expense" && transaction.type !== "topup");
     return matchesSearch && matchesFilter;
   });
+
+  const totalIncome = transactions
+    .filter(t => t.type === 'topup' && t.status === 'completed')
+    .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+
+  const totalExpenses = transactions
+    .filter(t => t.type !== 'topup' && t.status === 'completed')
+    .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
   return (
     <div className="pb-24 md:pb-8">
@@ -83,15 +126,15 @@ const Transactions = () => {
           <Card className="shadow-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Income</p>
-              <p className="text-xl font-bold text-primary">+₦6,250</p>
-              <p className="text-xs text-muted-foreground mt-1">This month</p>
+              <p className="text-xl font-bold text-primary">+₦{totalIncome.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total deposits</p>
             </CardContent>
           </Card>
           <Card className="shadow-purple-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-              <p className="text-xl font-bold text-secondary">-₦481</p>
-              <p className="text-xs text-muted-foreground mt-1">This month</p>
+              <p className="text-xl font-bold text-secondary">-₦{totalExpenses.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total spent</p>
             </CardContent>
           </Card>
         </div>
@@ -99,15 +142,26 @@ const Transactions = () => {
         {/* Transaction List */}
         <Card>
           <CardContent className="p-0">
-            {filteredTransactions.length > 0 ? (
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                Loading transactions...
+              </div>
+            ) : filteredTransactions.length > 0 ? (
               <div className="divide-y">
                 {filteredTransactions.map((transaction) => (
-                  <TransactionItem key={transaction.id} {...transaction} />
+                  <TransactionItem 
+                    key={transaction.id} 
+                    name={transaction.description || 'Transaction'}
+                    amount={parseFloat(transaction.amount.toString())}
+                    type={transaction.type === 'topup' ? 'income' : 'expense'}
+                    date={format(new Date(transaction.created_at), "MMM dd, hh:mm a")}
+                    icon={getTransactionIcon(transaction.type, transaction.provider)}
+                  />
                 ))}
               </div>
             ) : (
               <div className="p-8 text-center text-muted-foreground">
-                No transactions found
+                No transactions yet. Start by topping up your wallet!
               </div>
             )}
           </CardContent>
