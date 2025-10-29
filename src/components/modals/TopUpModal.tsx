@@ -1,10 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Building2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+
+type CardType = "visa" | "mastercard" | "amex" | "discover" | "unknown";
+
+const detectCardType = (number: string): CardType => {
+  const cleaned = number.replace(/\s/g, '');
+  
+  if (/^4/.test(cleaned)) return "visa";
+  if (/^5[1-5]/.test(cleaned)) return "mastercard";
+  if (/^3[47]/.test(cleaned)) return "amex";
+  if (/^6(?:011|5)/.test(cleaned)) return "discover";
+  
+  return "unknown";
+};
+
+const getCardTypeDisplay = (type: CardType): string => {
+  const types = {
+    visa: "Visa",
+    mastercard: "Mastercard",
+    amex: "American Express",
+    discover: "Discover",
+    unknown: ""
+  };
+  return types[type];
+};
 
 interface TopUpModalProps {
   open: boolean;
@@ -17,6 +41,11 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
   const [cardNumber, setCardNumber] = useState("");
   const [cvv, setCvv] = useState("");
   const [expiry, setExpiry] = useState("");
+  const [cardType, setCardType] = useState<CardType>("unknown");
+
+  useEffect(() => {
+    setCardType(detectCardType(cardNumber));
+  }, [cardNumber]);
 
   const methods = [
     { id: "card", label: "Debit Card", icon: CreditCard },
@@ -29,9 +58,40 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
       toast.error("Please enter amount");
       return;
     }
+    
+    if (method === "card") {
+      const cleanedCard = cardNumber.replace(/\s/g, '');
+      const cleanedExpiry = expiry.replace(/\//g, '');
+      
+      if (cleanedCard.length < 13 || cleanedCard.length > 19) {
+        toast.error("Invalid card number");
+        return;
+      }
+      
+      if (cleanedExpiry.length !== 4) {
+        toast.error("Invalid expiry date");
+        return;
+      }
+      
+      const month = parseInt(cleanedExpiry.slice(0, 2));
+      if (month < 1 || month > 12) {
+        toast.error("Invalid expiry month");
+        return;
+      }
+      
+      const maxCvvLength = cardType === "amex" ? 4 : 3;
+      if (cvv.length < maxCvvLength) {
+        toast.error(`CVV must be ${maxCvvLength} digits`);
+        return;
+      }
+    }
+    
     toast.success(`Top up of ₦${amount} initiated 💳`);
     onOpenChange(false);
     setAmount("");
+    setCardNumber("");
+    setCvv("");
+    setExpiry("");
   };
 
   return (
@@ -99,17 +159,24 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
           {method === "card" && (
             <div className="space-y-4 pt-4 border-t">
               <div className="space-y-2">
-                <Label htmlFor="card-number">Card Number</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="card-number">Card Number</Label>
+                  {cardType !== "unknown" && cardNumber.length > 4 && (
+                    <span className="text-xs font-medium text-primary">
+                      {getCardTypeDisplay(cardType)}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="card-number"
                   placeholder="1234 5678 9012 3456"
                   value={cardNumber}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 16);
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 19);
                     const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
                     setCardNumber(formatted);
                   }}
-                  maxLength={19}
+                  maxLength={23}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -134,10 +201,13 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
                   <Input
                     id="cvv"
                     type="password"
-                    placeholder="123"
+                    placeholder={cardType === "amex" ? "1234" : "123"}
                     value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    maxLength={3}
+                    onChange={(e) => {
+                      const maxLength = cardType === "amex" ? 4 : 3;
+                      setCvv(e.target.value.replace(/\D/g, '').slice(0, maxLength));
+                    }}
+                    maxLength={cardType === "amex" ? 4 : 3}
                   />
                 </div>
               </div>
