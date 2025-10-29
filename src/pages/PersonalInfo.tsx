@@ -22,6 +22,7 @@ const PersonalInfo = () => {
   const [address, setAddress] = useState("");
   const [bvn, setBvn] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
 
@@ -53,6 +54,7 @@ const PersonalInfo = () => {
         setPhoneNumber(profile.phone_number || "");
         setAddress(profile.address || "");
         setBvn(profile.bvn || "");
+        setAccountNumber(profile.account_number || "");
         if (profile.avatar_url) {
           // Check if it's a storage path or a data URL
           if (profile.avatar_url.startsWith('data:')) {
@@ -218,6 +220,33 @@ const PersonalInfo = () => {
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="account-number">Account Number</Label>
+              <div className="relative">
+                <Input 
+                  id="account-number" 
+                  value={accountNumber}
+                  disabled
+                  className="bg-muted font-mono text-lg tracking-wider"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                  onClick={() => {
+                    navigator.clipboard.writeText(accountNumber);
+                    toast.success("Account number copied!");
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>🏦</span>
+                <span>Delighto Bank</span>
+              </div>
             </div>
 
             <div className="space-y-2">
