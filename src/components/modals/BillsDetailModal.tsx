@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import mtnLogo from "@/assets/mtn-logo.png";
@@ -84,8 +84,33 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
   const [amount, setAmount] = useState("");
   const [detectedProvider, setDetectedProvider] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const providers = category ? nigerianProviders[category.id as keyof typeof nigerianProviders] || [] : [];
+  
+  useEffect(() => {
+    if (open) {
+      fetchWalletBalance();
+    }
+  }, [open]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: wallet, error } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      setWalletBalance(wallet ? parseFloat(wallet.balance.toString()) : 0);
+    } catch (error) {
+      console.error('Failed to fetch wallet balance:', error);
+    }
+  };
   
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value);
@@ -99,12 +124,26 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
       return;
     }
 
+    const purchaseAmount = parseFloat(amount);
+    
+    // Check if amount is valid
+    if (isNaN(purchaseAmount) || purchaseAmount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    // Check wallet balance
+    if (purchaseAmount > walletBalance) {
+      toast.error(`Insufficient balance. Your balance is ₦${walletBalance.toLocaleString()}`);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('vtpass-purchase', {
         body: {
           serviceID: detectedProvider,
-          amount: parseFloat(amount),
+          amount: purchaseAmount,
           phone: phoneNumber,
         },
       });
@@ -113,6 +152,8 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
 
       if (data.success) {
         toast.success(`${category?.label} purchase successful! ₦${amount} has been processed.`);
+        // Refresh wallet balance
+        await fetchWalletBalance();
         onOpenChange(false);
         setPhoneNumber("");
         setAmount("");
@@ -136,6 +177,12 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Wallet Balance Display */}
+          <div className="bg-primary/10 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Wallet Balance</span>
+            <span className="text-lg font-bold">₦{walletBalance.toLocaleString()}</span>
+          </div>
+
           {/* Phone Number / Account Number with Provider Detection */}
           <div className="space-y-2">
             <Label htmlFor="phone">
@@ -157,6 +204,7 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
                 value={phoneNumber}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 className={detectedProvider && (category?.id === "airtime" || category?.id === "data") ? "pl-14" : ""}
+                disabled={loading}
               />
             </div>
             {detectedProvider && (category?.id === "airtime" || category?.id === "data") && (
@@ -182,8 +230,12 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
                   setAmount(val);
                 }}
                 className="pl-7"
+                disabled={loading}
               />
             </div>
+            {amount && parseFloat(amount) > walletBalance && (
+              <p className="text-xs text-destructive">Insufficient balance</p>
+            )}
           </div>
 
           {/* Quick amounts for airtime/data */}
@@ -196,6 +248,7 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
                   size="sm"
                   onClick={() => setAmount(val.toString())}
                   className="flex-1"
+                  disabled={loading}
                 >
                   ₦{val}
                 </Button>
@@ -208,7 +261,7 @@ export const BillsDetailModal = ({ open, onOpenChange, category }: BillsDetailMo
             className="w-full" 
             variant="gradient" 
             size="lg"
-            disabled={loading}
+            disabled={loading || !amount || !phoneNumber || parseFloat(amount) > walletBalance}
           >
             {loading ? "Processing..." : "Pay Now"}
           </Button>
