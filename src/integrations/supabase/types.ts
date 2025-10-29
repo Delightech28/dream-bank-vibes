@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          account_number: string | null
           address: string | null
           avatar_url: string | null
           bvn: string | null
@@ -28,6 +29,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_number?: string | null
           address?: string | null
           avatar_url?: string | null
           bvn?: string | null
@@ -40,6 +42,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_number?: string | null
           address?: string | null
           avatar_url?: string | null
           bvn?: string | null
@@ -150,7 +153,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_account_number: { Args: never; Returns: string }
     }
     Enums: {
       transaction_status: "pending" | "completed" | "failed" | "refunded"
