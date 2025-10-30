@@ -70,41 +70,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
-    if (!PAYSTACK_SECRET_KEY) {
-      throw new Error('PAYSTACK_SECRET_KEY not configured');
+    const FLUTTERWAVE_SECRET_KEY = Deno.env.get('FLUTTERWAVE_SECRET_KEY');
+    if (!FLUTTERWAVE_SECRET_KEY) {
+      throw new Error('FLUTTERWAVE_SECRET_KEY not configured');
     }
 
-    // Create dedicated virtual account with Paystack
-    const paystackResponse = await fetch(
-      'https://api.paystack.co/dedicated_account',
+    // Generate unique reference for Flutterwave
+    const reference = `${user.id.slice(0, 8)}_${Date.now()}`;
+
+    // Create virtual account with Flutterwave
+    const flutterwaveResponse = await fetch(
+      'https://api.flutterwave.com/v3/virtual-account-numbers',
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customer: user.email,
-          preferred_bank: 'wema-bank', // Wema Bank provides instant virtual accounts
-          first_name: profile.full_name?.split(' ')[0] || 'User',
-          last_name: profile.full_name?.split(' ').slice(1).join(' ') || 'PayVance',
+          reference: reference,
+          account_bank: 'any', // Auto-assigns Nigerian bank
+          customer: {
+            name: profile.full_name || 'PayVance User',
+            email: user.email,
+          },
+          currency: 'NGN',
+          tx_ref: reference,
         }),
       }
     );
 
-    const paystackData = await paystackResponse.json();
-    console.log('Paystack response:', paystackData);
+    const flutterwaveData = await flutterwaveResponse.json();
+    console.log('Flutterwave response:', flutterwaveData);
 
-    if (!paystackData.status) {
-      // Handle specific error for DVA not available (test mode or unverified business)
-      if (paystackData.message?.includes('not available') || paystackData.message?.includes('NUBAN')) {
-        console.log('DVA not available - likely using test keys or account not verified');
+    if (flutterwaveData.status !== 'success') {
+      // Handle specific errors
+      if (flutterwaveResponse.status === 401) {
+        console.log('Flutterwave authentication failed - invalid API key');
         return new Response(
           JSON.stringify({
             success: false,
-            message: 'Virtual accounts require a verified Paystack business account with live API keys. Using test mode or unverified account.',
-            requiresVerification: true,
+            message: 'Virtual account setup failed. Please contact support.',
           }),
           {
             status: 200,
@@ -112,18 +118,19 @@ Deno.serve(async (req) => {
           }
         );
       }
-      throw new Error(paystackData.message || 'Failed to create virtual account');
+      throw new Error(flutterwaveData.message || 'Failed to create virtual account');
     }
 
-    const accountData = paystackData.data;
+    const accountData = flutterwaveData.data;
 
     // Update profile with virtual account details
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({
         virtual_account_number: accountData.account_number,
-        virtual_account_bank: accountData.bank.name,
-        virtual_account_name: accountData.account_name,
+        virtual_account_bank: accountData.bank_name,
+        virtual_account_name: accountData.customer?.name || profile.full_name,
+        flutterwave_reference: reference,
       })
       .eq('user_id', user.id);
 
@@ -137,11 +144,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Virtual account created successfully',
+        message: 'Your bank account is ready!',
         account: {
           account_number: accountData.account_number,
-          bank_name: accountData.bank.name,
-          account_name: accountData.account_name,
+          bank_name: accountData.bank_name,
+          account_name: accountData.customer?.name || profile.full_name,
         },
       }),
       {
