@@ -253,33 +253,6 @@ const PersonalInfo = () => {
               <p className="text-xs text-muted-foreground">Email cannot be changed</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="account-number">Internal Account Number</Label>
-              <div className="relative">
-                <Input 
-                  id="account-number" 
-                  value={accountNumber}
-                  disabled
-                  className="bg-muted font-mono text-lg tracking-wider"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-                  onClick={() => {
-                    navigator.clipboard.writeText(accountNumber);
-                    toast.success("Account number copied!");
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>🏦</span>
-                <span>PayVance - Internal Use Only</span>
-              </div>
-            </div>
-
             {/* Virtual Account Section */}
             <div className="space-y-3 p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
               <div className="flex items-center justify-between">
