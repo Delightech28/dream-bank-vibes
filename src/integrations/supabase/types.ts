@@ -27,6 +27,9 @@ export type Database = {
           phone_number: string | null
           updated_at: string
           user_id: string
+          virtual_account_bank: string | null
+          virtual_account_name: string | null
+          virtual_account_number: string | null
         }
         Insert: {
           account_number?: string | null
@@ -40,6 +43,9 @@ export type Database = {
           phone_number?: string | null
           updated_at?: string
           user_id: string
+          virtual_account_bank?: string | null
+          virtual_account_name?: string | null
+          virtual_account_number?: string | null
         }
         Update: {
           account_number?: string | null
@@ -53,6 +59,9 @@ export type Database = {
           phone_number?: string | null
           updated_at?: string
           user_id?: string
+          virtual_account_bank?: string | null
+          virtual_account_name?: string | null
+          virtual_account_number?: string | null
         }
         Relationships: []
       }

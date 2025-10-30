@@ -23,6 +23,10 @@ const PersonalInfo = () => {
   const [bvn, setBvn] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [virtualAccountNumber, setVirtualAccountNumber] = useState("");
+  const [virtualAccountBank, setVirtualAccountBank] = useState("");
+  const [virtualAccountName, setVirtualAccountName] = useState("");
+  const [creatingVirtualAccount, setCreatingVirtualAccount] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
 
@@ -55,6 +59,9 @@ const PersonalInfo = () => {
         setAddress(profile.address || "");
         setBvn(profile.bvn || "");
         setAccountNumber(profile.account_number || "");
+        setVirtualAccountNumber(profile.virtual_account_number || "");
+        setVirtualAccountBank(profile.virtual_account_bank || "");
+        setVirtualAccountName(profile.virtual_account_name || "");
         if (profile.avatar_url) {
           // Check if it's a storage path or a data URL
           if (profile.avatar_url.startsWith('data:')) {
@@ -98,6 +105,29 @@ const PersonalInfo = () => {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateVirtualAccount = async () => {
+    setCreatingVirtualAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-virtual-account');
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Virtual account created successfully!');
+        setVirtualAccountNumber(data.account.account_number);
+        setVirtualAccountBank(data.account.bank_name);
+        setVirtualAccountName(data.account.account_name);
+      } else {
+        toast.error(data.error || 'Failed to create virtual account');
+      }
+    } catch (error: any) {
+      console.error('Error creating virtual account:', error);
+      toast.error('Failed to create virtual account');
+    } finally {
+      setCreatingVirtualAccount(false);
     }
   };
 
@@ -223,7 +253,7 @@ const PersonalInfo = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account-number">Account Number</Label>
+              <Label htmlFor="account-number">Internal Account Number</Label>
               <div className="relative">
                 <Input 
                   id="account-number" 
@@ -245,8 +275,78 @@ const PersonalInfo = () => {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>🏦</span>
-                <span>Delighto Bank</span>
+                <span>Delighto - Internal Use Only</span>
               </div>
+            </div>
+
+            {/* Virtual Account Section */}
+            <div className="space-y-3 p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Bank Transfer Account</Label>
+                {!virtualAccountNumber && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCreateVirtualAccount}
+                    disabled={creatingVirtualAccount}
+                  >
+                    {creatingVirtualAccount ? "Creating..." : "Generate"}
+                  </Button>
+                )}
+              </div>
+              
+              {virtualAccountNumber ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="virtual-account" className="text-xs text-muted-foreground">Account Number</Label>
+                    <div className="relative">
+                      <Input 
+                        id="virtual-account" 
+                        value={virtualAccountNumber}
+                        disabled
+                        className="bg-background font-mono text-xl font-bold tracking-wider"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(virtualAccountNumber);
+                          toast.success("Account number copied!");
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Bank Name</Label>
+                    <p className="font-semibold">{virtualAccountBank}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Account Name</Label>
+                    <p className="font-semibold">{virtualAccountName}</p>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-blue-500/10 rounded-md">
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      💡 Transfer money from any Nigerian bank to this account number and it will automatically be credited to your Delighto wallet!
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Generate your dedicated bank account number to receive payments from any Nigerian bank
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <span>🏦</span>
+                    <span>Works with all Nigerian banks</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
