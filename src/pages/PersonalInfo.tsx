@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, CalendarIcon, Camera, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronDownIcon, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 const PersonalInfo = () => {
   const navigate = useNavigate();
   const [dateOfBirth, setDateOfBirth] = useState<Date>();
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -367,43 +368,41 @@ const PersonalInfo = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
-              <Popover>
+              <Label htmlFor="dob" className="px-1">Date of Birth</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="dob"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal h-12 text-base border-input hover:bg-accent hover:text-accent-foreground",
+                      "w-full justify-between font-normal",
                       !dateOfBirth && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    {dateOfBirth ? (
-                      <span className="font-medium">{format(dateOfBirth, "MMMM d, yyyy")}</span>
-                    ) : (
-                      <span>Select your date of birth</span>
-                    )}
+                    {dateOfBirth ? dateOfBirth.toLocaleDateString() : "Select date"}
+                    <ChevronDownIcon />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
+                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={dateOfBirth}
-                    onSelect={setDateOfBirth}
+                    captionLayout="dropdown"
+                    onSelect={(date) => {
+                      setDateOfBirth(date);
+                      setDatePickerOpen(false);
+                    }}
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
                     defaultMonth={dateOfBirth || new Date(2000, 0)}
-                    initialFocus
-                    captionLayout="dropdown-buttons"
                     fromYear={1900}
                     toYear={new Date().getFullYear()}
-                    className="pointer-events-auto rounded-lg border shadow-lg"
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground px-1">
                 You must be at least 18 years old
               </p>
             </div>

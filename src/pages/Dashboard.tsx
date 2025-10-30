@@ -8,7 +8,6 @@ import { TransactionItem } from "@/components/TransactionItem";
 import { BalanceCard } from "@/components/BalanceCard";
 import { SendMoneyModal } from "@/components/modals/SendMoneyModal";
 import { RequestMoneyModal } from "@/components/modals/RequestMoneyModal";
-import { TopUpModal } from "@/components/modals/TopUpModal";
 import { BillsModal } from "@/components/modals/BillsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,7 +17,6 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [topUpModalOpen, setTopUpModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<Array<{
     id: string;
@@ -153,7 +151,7 @@ const Dashboard = () => {
           <div onClick={() => setRequestModalOpen(true)}>
             <QuickAction icon={<ArrowDownLeft className="w-5 h-5" />} label="Request" />
           </div>
-          <div onClick={() => setTopUpModalOpen(true)}>
+          <div onClick={() => navigate("/top-up")}>
             <QuickAction icon={<Plus className="w-5 h-5" />} label="Top Up" />
           </div>
           <div onClick={() => setBillsModalOpen(true)}>
@@ -226,7 +224,6 @@ const Dashboard = () => {
       {/* Modals */}
       <SendMoneyModal open={sendModalOpen} onOpenChange={setSendModalOpen} />
       <RequestMoneyModal open={requestModalOpen} onOpenChange={setRequestModalOpen} />
-      <TopUpModal open={topUpModalOpen} onOpenChange={setTopUpModalOpen} />
       <BillsModal open={billsModalOpen} onOpenChange={setBillsModalOpen} />
     </div>
   );

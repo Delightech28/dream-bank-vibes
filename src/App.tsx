@@ -14,6 +14,7 @@ import Notifications from "./pages/Notifications";
 import Security from "./pages/Security";
 import Settings from "./pages/Settings";
 import HelpSupport from "./pages/HelpSupport";
+import TopUp from "./pages/TopUp";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/security" element={<Security />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help-support" element={<HelpSupport />} />
+          <Route path="/top-up" element={<TopUp />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
