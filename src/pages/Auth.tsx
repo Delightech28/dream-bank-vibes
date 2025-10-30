@@ -17,14 +17,19 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricAvailableForEmail, setBiometricAvailableForEmail] = useState(false);
   const navigate = useNavigate();
 
+  // Check if biometric is available for the entered email
   useEffect(() => {
-    // Check if biometric is enabled
-    const biometric = localStorage.getItem('biometricEnabled');
-    setBiometricEnabled(biometric === 'true');
-  }, []);
+    if (email && isLogin) {
+      const storedCredential = localStorage.getItem(`biometric_${email}`);
+      const storedPassword = localStorage.getItem(`biometric_password_${email}`);
+      setBiometricAvailableForEmail(!!storedCredential && !!storedPassword);
+    } else {
+      setBiometricAvailableForEmail(false);
+    }
+  }, [email, isLogin]);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -108,8 +113,8 @@ const Auth = () => {
   };
 
   const handleBiometricAuth = async () => {
-    if (!biometricEnabled) {
-      toast.error("Biometric login is not enabled. Please enable it in Security settings.");
+    if (!biometricAvailableForEmail) {
+      toast.error("Biometric login is not set up for this email. Please sign in with your password first and enable biometric in Security settings.");
       return;
     }
 
@@ -262,7 +267,7 @@ const Auth = () => {
                       )}
                     </button>
                   </div>
-                  {isLogin && (
+                  {isLogin && biometricAvailableForEmail && (
                     <button
                       type="button"
                       onClick={handleBiometricAuth}
