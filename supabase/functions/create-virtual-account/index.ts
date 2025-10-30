@@ -89,17 +89,15 @@ Deno.serve(async (req) => {
     }
 
     // Generate unique reference for Flutterwave
-    const reference = `${user.id.slice(0, 8)}_${Date.now()}`;
+    const tx_ref = `PVANCE_${user.id.slice(0, 8)}_${Date.now()}`;
 
     const requestBody = {
-      reference: reference,
-      account_bank: 'any', // Auto-assigns Nigerian bank
-      customer: {
-        name: profile.full_name || 'PayVance User',
-        email: user.email,
-      },
-      currency: 'NGN',
-      tx_ref: reference,
+      email: user.email,
+      is_permanent: true,
+      tx_ref: tx_ref,
+      // Optional fields for better account management
+      firstname: profile.full_name?.split(' ')[0] || 'PayVance',
+      lastname: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
     };
 
     console.log('Flutterwave request body:', JSON.stringify(requestBody, null, 2));
@@ -146,8 +144,8 @@ Deno.serve(async (req) => {
       .update({
         virtual_account_number: accountData.account_number,
         virtual_account_bank: accountData.bank_name,
-        virtual_account_name: accountData.customer?.name || profile.full_name,
-        flutterwave_reference: reference,
+        virtual_account_name: accountData.note || `${profile.full_name} - PayVance`,
+        flutterwave_reference: tx_ref,
       })
       .eq('user_id', user.id);
 
@@ -165,7 +163,8 @@ Deno.serve(async (req) => {
         account: {
           account_number: accountData.account_number,
           bank_name: accountData.bank_name,
-          account_name: accountData.customer?.name || profile.full_name,
+          account_name: accountData.note || `${profile.full_name} - PayVance`,
+          flw_ref: accountData.flw_ref,
         },
       }),
       {
