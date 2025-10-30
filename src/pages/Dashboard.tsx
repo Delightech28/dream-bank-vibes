@@ -20,9 +20,18 @@ const Dashboard = () => {
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [topUpModalOpen, setTopUpModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
+  const [recentTransactions, setRecentTransactions] = useState<Array<{
+    id: string;
+    name: string;
+    amount: number;
+    type: "income" | "expense";
+    date: string;
+    icon: string;
+  }>>([]);
 
   useEffect(() => {
     fetchWalletBalance();
+    fetchRecentTransactions();
   }, []);
 
   const fetchWalletBalance = async () => {
@@ -51,20 +60,83 @@ const Dashboard = () => {
     }
   };
 
-  const transactions: Array<{
-    id: number;
-    name: string;
-    amount: number;
-    type: "income" | "expense";
-    date: string;
-    icon: string;
-  }> = [
-    { id: 1, name: "Salary Deposit", amount: 5200, type: "income", date: "Today", icon: "💰" },
-    { id: 2, name: "Netflix Subscription", amount: -15.99, type: "expense", date: "Yesterday", icon: "🎬" },
-    { id: 3, name: "Grocery Store", amount: -127.50, type: "expense", date: "Yesterday", icon: "🛒" },
-    { id: 4, name: "Transfer from Mom", amount: 200, type: "income", date: "2 days ago", icon: "💝" },
-    { id: 5, name: "Coffee Shop", amount: -4.50, type: "expense", date: "2 days ago", icon: "☕" },
-  ];
+  const fetchRecentTransactions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+
+      if (transactions) {
+        const formattedTransactions = transactions.map((t) => {
+          const isIncome = t.type === 'deposit';
+          const icon = getTransactionIcon(t.type);
+          const date = formatTransactionDate(t.created_at);
+          
+          return {
+            id: t.id,
+            name: t.description || getTransactionName(t.type, t.provider),
+            amount: parseFloat(String(t.amount)),
+            type: isIncome ? 'income' as const : 'expense' as const,
+            date,
+            icon,
+          };
+        });
+        setRecentTransactions(formattedTransactions);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
+  const getTransactionIcon = (type: string): string => {
+    const iconMap: Record<string, string> = {
+      deposit: "💰",
+      withdrawal: "💸",
+      airtime: "📱",
+      data: "🌐",
+      electricity: "⚡",
+      cable: "📺",
+      water: "💧",
+    };
+    return iconMap[type] || "💳";
+  };
+
+  const getTransactionName = (type: string, provider?: string | null): string => {
+    if (provider) return `${provider} ${type}`;
+    const nameMap: Record<string, string> = {
+      deposit: "Wallet Deposit",
+      withdrawal: "Withdrawal",
+      airtime: "Airtime Purchase",
+      data: "Data Purchase",
+      electricity: "Electricity Bill",
+      cable: "Cable TV",
+      water: "Water Bill",
+    };
+    return nameMap[type] || "Transaction";
+  };
+
+  const formatTransactionDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInHours < 24) return "Today";
+    if (diffInDays === 1) return "Yesterday";
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="pb-24 md:pb-8">
@@ -135,11 +207,18 @@ const Dashboard = () => {
         </div>
         <Card>
           <CardContent className="p-0">
-            <div className="divide-y">
-              {transactions.map((transaction) => (
-                <TransactionItem key={transaction.id} {...transaction} />
-              ))}
-            </div>
+            {recentTransactions.length > 0 ? (
+              <div className="divide-y">
+                {recentTransactions.map((transaction) => (
+                  <TransactionItem key={transaction.id} {...transaction} />
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p>No transactions yet</p>
+                <p className="text-sm mt-1">Start by topping up your wallet</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

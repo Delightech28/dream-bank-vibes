@@ -374,15 +374,19 @@ const PersonalInfo = () => {
                     id="dob"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal h-11",
+                      "w-full justify-start text-left font-normal h-12 text-base border-input hover:bg-accent hover:text-accent-foreground",
                       !dateOfBirth && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Pick a date</span>}
+                    <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                    {dateOfBirth ? (
+                      <span className="font-medium">{format(dateOfBirth, "MMMM d, yyyy")}</span>
+                    ) : (
+                      <span>Select your date of birth</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="center">
                   <Calendar
                     mode="single"
                     selected={dateOfBirth}
@@ -390,14 +394,18 @@ const PersonalInfo = () => {
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
+                    defaultMonth={dateOfBirth || new Date(2000, 0)}
                     initialFocus
                     captionLayout="dropdown-buttons"
                     fromYear={1900}
                     toYear={new Date().getFullYear()}
-                    className="pointer-events-auto rounded-lg"
+                    className="pointer-events-auto rounded-lg border shadow-lg"
                   />
                 </PopoverContent>
               </Popover>
+              <p className="text-xs text-muted-foreground">
+                You must be at least 18 years old
+              </p>
             </div>
 
             <div className="space-y-2">
