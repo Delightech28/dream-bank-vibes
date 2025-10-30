@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Wallet, Mail, Lock, User, Sparkles, Eye, EyeOff, Fingerprint } from "lucide-react";
+import { Wallet, Mail, Lock, User, Eye, EyeOff, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import googleLogo from "@/assets/google-logo.png";
@@ -113,13 +113,13 @@ const Auth = () => {
   };
 
   const handleBiometricAuth = async () => {
-    if (!biometricAvailableForEmail) {
-      toast.error("Biometric login is not set up for this email. Please sign in with your password first and enable biometric in Security settings.");
+    if (!email) {
+      toast.error("Please enter your email first");
       return;
     }
 
-    if (!email) {
-      toast.error("Please enter your email first");
+    if (!biometricAvailableForEmail) {
+      toast.info("Biometric login is not set up for this email yet. Sign in with your password first, then enable biometric authentication in Security settings.");
       return;
     }
 
@@ -187,16 +187,6 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary shadow-glow mb-4">
-            <Wallet className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">PayVance</h1>
-          <p className="text-muted-foreground flex items-center justify-center gap-2">
-            Banking made fun & simple <Sparkles className="w-4 h-4 text-primary" />
-          </p>
-        </div>
-
         <Card className="shadow-2xl border-0 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <CardHeader>
             <CardTitle>{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
