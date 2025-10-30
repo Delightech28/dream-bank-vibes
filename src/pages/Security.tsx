@@ -19,7 +19,15 @@ const Security = () => {
   const [securityScore, setSecurityScore] = useState(0);
 
   useEffect(() => {
+    // Load biometric preference from localStorage
+    const biometric = localStorage.getItem('biometricEnabled');
+    setBiometricEnabled(biometric === 'true');
+    
     fetchSessions();
+    calculateSecurityScore();
+  }, []);
+
+  useEffect(() => {
     calculateSecurityScore();
   }, [biometricEnabled, twoFactorEnabled]);
 
@@ -42,6 +50,72 @@ const Security = () => {
     if (biometricEnabled) score += 30;
     if (twoFactorEnabled) score += 30;
     setSecurityScore(score);
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    setBiometricEnabled(enabled);
+    localStorage.setItem('biometricEnabled', enabled.toString());
+    
+    if (enabled) {
+      // Check if WebAuthn is supported
+      if (!window.PublicKeyCredential) {
+        toast.error("Biometric authentication is not supported on this device");
+        setBiometricEnabled(false);
+        localStorage.setItem('biometricEnabled', 'false');
+        return;
+      }
+
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) {
+          toast.error("Please sign in to enable biometric authentication");
+          return;
+        }
+
+        // Create registration options
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+
+        const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
+          challenge,
+          rp: {
+            name: "PayVance",
+            id: window.location.hostname,
+          },
+          user: {
+            id: new Uint8Array(16),
+            name: user.email,
+            displayName: user.email,
+          },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required",
+          },
+          timeout: 60000,
+        };
+
+        // Create credential
+        const credential = await navigator.credentials.create({
+          publicKey: publicKeyCredentialCreationOptions,
+        }) as PublicKeyCredential;
+
+        if (credential) {
+          // Store credential ID
+          const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+          localStorage.setItem(`biometric_${user.email}`, JSON.stringify(credentialId));
+          toast.success("Biometric authentication enabled successfully!");
+        }
+      } catch (error: any) {
+        console.error("Biometric setup error:", error);
+        toast.error("Failed to setup biometric authentication");
+        setBiometricEnabled(false);
+        localStorage.setItem('biometricEnabled', 'false');
+      }
+    } else {
+      toast.success("Biometric authentication disabled");
+    }
   };
 
   const handleEndSession = async (sessionId: string) => {
@@ -79,7 +153,7 @@ const Security = () => {
                   <p className="text-sm text-muted-foreground">Use fingerprint or face ID</p>
                 </div>
               </div>
-              <Switch checked={biometricEnabled} onCheckedChange={setBiometricEnabled} />
+              <Switch checked={biometricEnabled} onCheckedChange={handleBiometricToggle} />
             </div>
 
             <div className="flex items-center justify-between p-4 border-b">

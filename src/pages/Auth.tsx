@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Wallet, Mail, Lock, User, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Wallet, Mail, Lock, User, Sparkles, Eye, EyeOff, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import googleLogo from "@/assets/google-logo.png";
@@ -17,7 +17,14 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if biometric is enabled
+    const biometric = localStorage.getItem('biometricEnabled');
+    setBiometricEnabled(biometric === 'true');
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -55,6 +62,13 @@ const Auth = () => {
         });
 
         if (error) throw error;
+        
+        // Store password for biometric auth if enabled
+        const biometricEnabled = localStorage.getItem('biometricEnabled');
+        if (biometricEnabled === 'true') {
+          localStorage.setItem(`biometric_password_${email}`, btoa(password));
+        }
+        
         toast.success("Welcome back!");
       } else {
         const { error } = await supabase.auth.signUp({
@@ -90,6 +104,78 @@ const Auth = () => {
       if (error) throw error;
     } catch (error: any) {
       toast.error(error.message || "An error occurred");
+    }
+  };
+
+  const handleBiometricAuth = async () => {
+    if (!biometricEnabled) {
+      toast.error("Biometric login is not enabled. Please enable it in Security settings.");
+      return;
+    }
+
+    if (!email) {
+      toast.error("Please enter your email first");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Check if WebAuthn is supported
+      if (!window.PublicKeyCredential) {
+        toast.error("Biometric authentication is not supported on this device");
+        return;
+      }
+
+      // Get stored credential ID for this email
+      const storedCredential = localStorage.getItem(`biometric_${email}`);
+      if (!storedCredential) {
+        toast.error("No biometric credential found. Please sign in with password first.");
+        return;
+      }
+
+      const credentialId = JSON.parse(storedCredential);
+
+      // Create authentication options
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
+        challenge,
+        allowCredentials: [{
+          id: Uint8Array.from(atob(credentialId), c => c.charCodeAt(0)),
+          type: 'public-key',
+        }],
+        timeout: 60000,
+      };
+
+      // Request authentication
+      const credential = await navigator.credentials.get({
+        publicKey: publicKeyCredentialRequestOptions,
+      }) as PublicKeyCredential;
+
+      if (credential) {
+        // Get the stored password for this email (in a real app, this would be handled server-side)
+        const storedPassword = localStorage.getItem(`biometric_password_${email}`);
+        if (!storedPassword) {
+          toast.error("Authentication failed. Please sign in with password.");
+          return;
+        }
+
+        // Sign in with stored credentials
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: atob(storedPassword),
+        });
+
+        if (error) throw error;
+        toast.success("Biometric authentication successful!");
+      }
+    } catch (error: any) {
+      console.error("Biometric auth error:", error);
+      toast.error("Biometric authentication failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,20 +246,32 @@ const Auth = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-9"
+                    className="pl-9 pr-20"
                     disabled={loading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
+                  <div className="absolute right-3 top-3 flex items-center gap-1">
+                    {isLogin && biometricEnabled && (
+                      <button
+                        type="button"
+                        onClick={handleBiometricAuth}
+                        className="text-primary hover:text-primary/80 transition-colors"
+                        title="Sign in with biometric"
+                      >
+                        <Fingerprint className="h-4 w-4" />
+                      </button>
                     )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
