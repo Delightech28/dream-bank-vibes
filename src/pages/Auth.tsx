@@ -100,6 +100,8 @@ const Auth = () => {
             if (accountError) {
               console.error('Virtual account creation error:', accountError);
               toast.error("Virtual account setup failed. You can create it later from your dashboard.");
+            } else if (accountData?.requiresVerification) {
+              toast.info("Note: Virtual accounts require a verified Paystack business account. Currently in test mode.");
             } else if (accountData?.success) {
               toast.success(`Virtual account ready! Account: ${accountData.account.account_number} (${accountData.account.bank_name})`);
             }

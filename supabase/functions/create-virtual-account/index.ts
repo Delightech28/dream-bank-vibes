@@ -97,6 +97,21 @@ Deno.serve(async (req) => {
     console.log('Paystack response:', paystackData);
 
     if (!paystackData.status) {
+      // Handle specific error for DVA not available (test mode or unverified business)
+      if (paystackData.message?.includes('not available') || paystackData.message?.includes('NUBAN')) {
+        console.log('DVA not available - likely using test keys or account not verified');
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Virtual accounts require a verified Paystack business account with live API keys. Using test mode or unverified account.',
+            requiresVerification: true,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
       throw new Error(paystackData.message || 'Failed to create virtual account');
     }
 
