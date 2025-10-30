@@ -37,6 +37,19 @@ Deno.serve(async (req) => {
     }
 
     console.log('Creating virtual account for user:', user.id);
+    console.log('User email:', user.email);
+
+    // Validate email exists
+    if (!user.email) {
+      console.error('User email is missing');
+      return new Response(
+        JSON.stringify({ error: 'User email is required for account creation' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
@@ -78,6 +91,19 @@ Deno.serve(async (req) => {
     // Generate unique reference for Flutterwave
     const reference = `${user.id.slice(0, 8)}_${Date.now()}`;
 
+    const requestBody = {
+      reference: reference,
+      account_bank: 'any', // Auto-assigns Nigerian bank
+      customer: {
+        name: profile.full_name || 'PayVance User',
+        email: user.email,
+      },
+      currency: 'NGN',
+      tx_ref: reference,
+    };
+
+    console.log('Flutterwave request body:', JSON.stringify(requestBody, null, 2));
+
     // Create virtual account with Flutterwave
     const flutterwaveResponse = await fetch(
       'https://api.flutterwave.com/v3/virtual-account-numbers',
@@ -87,16 +113,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          reference: reference,
-          account_bank: 'any', // Auto-assigns Nigerian bank
-          customer: {
-            name: profile.full_name || 'PayVance User',
-            email: user.email,
-          },
-          currency: 'NGN',
-          tx_ref: reference,
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
