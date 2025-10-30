@@ -250,7 +250,7 @@ const Auth = () => {
                     disabled={loading}
                   />
                   <div className="absolute right-3 top-3 flex items-center gap-1">
-                    {isLogin && biometricEnabled && (
+                    {isLogin && (
                       <button
                         type="button"
                         onClick={handleBiometricAuth}
