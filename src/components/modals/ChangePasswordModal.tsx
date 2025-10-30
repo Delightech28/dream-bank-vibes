@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Key } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -15,8 +16,9 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (newPassword !== confirmPassword) {
@@ -29,11 +31,25 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
       return;
     }
 
-    toast.success("Password changed successfully!");
-    onOpenChange(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      toast.success("Password changed successfully!");
+      onOpenChange(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to change password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -85,8 +101,8 @@ export const ChangePasswordModal = ({ open, onOpenChange }: ChangePasswordModalP
             />
           </div>
 
-          <Button type="submit" className="w-full" variant="gradient" size="lg">
-            Change Password
+          <Button type="submit" className="w-full" variant="gradient" size="lg" disabled={isLoading}>
+            {isLoading ? "Changing..." : "Change Password"}
           </Button>
         </form>
       </DialogContent>
