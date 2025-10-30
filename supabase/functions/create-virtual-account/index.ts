@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
     const requestBody: any = {
       email: user.email,
       tx_ref: tx_ref,
+      amount: 100, // Minimum amount required by Flutterwave (in NGN)
       // Optional fields for better account management
       firstname: profile.full_name?.split(' ')[0] || 'PayVance',
       lastname: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
