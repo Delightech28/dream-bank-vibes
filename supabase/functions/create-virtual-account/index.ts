@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('full_name, virtual_account_number')
+      .select('full_name, virtual_account_number, bvn')
       .eq('user_id', user.id)
       .single();
 
@@ -91,14 +91,23 @@ Deno.serve(async (req) => {
     // Generate unique reference for Flutterwave
     const tx_ref = `PVANCE_${user.id.slice(0, 8)}_${Date.now()}`;
 
-    const requestBody = {
+    const requestBody: any = {
       email: user.email,
-      is_permanent: true,
       tx_ref: tx_ref,
       // Optional fields for better account management
       firstname: profile.full_name?.split(' ')[0] || 'PayVance',
       lastname: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
     };
+
+    // Only create permanent account if BVN is provided
+    if (profile.bvn) {
+      requestBody.is_permanent = true;
+      requestBody.bvn = profile.bvn;
+      console.log('Creating permanent virtual account with BVN');
+    } else {
+      // Create temporary/dynamic account without BVN requirement
+      console.log('Creating temporary virtual account (no BVN provided)');
+    }
 
     console.log('Flutterwave request body:', JSON.stringify(requestBody, null, 2));
 
