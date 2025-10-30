@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
           customer: user.email,
           preferred_bank: 'wema-bank', // Wema Bank provides instant virtual accounts
           first_name: profile.full_name?.split(' ')[0] || 'User',
-          last_name: profile.full_name?.split(' ').slice(1).join(' ') || 'Delighto',
+          last_name: profile.full_name?.split(' ').slice(1).join(' ') || 'PayVance',
         }),
       }
     );

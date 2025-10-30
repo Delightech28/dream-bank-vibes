@@ -275,7 +275,7 @@ const PersonalInfo = () => {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>🏦</span>
-                <span>Delighto - Internal Use Only</span>
+                <span>PayVance - Internal Use Only</span>
               </div>
             </div>
 
@@ -332,7 +332,7 @@ const PersonalInfo = () => {
 
                   <div className="mt-3 p-3 bg-blue-500/10 rounded-md">
                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                      💡 Transfer money from any Nigerian bank to this account number and it will automatically be credited to your Delighto wallet!
+                      💡 Transfer money from any Nigerian bank to this account number and it will automatically be credited to your PayVance wallet!
                     </p>
                   </div>
                 </>

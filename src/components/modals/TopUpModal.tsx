@@ -269,7 +269,7 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bank Name</span>
-                  <span className="font-medium">Delighto Bank</span>
+                  <span className="font-medium">PayVance Bank</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Account Number</span>
@@ -277,7 +277,7 @@ export const TopUpModal = ({ open, onOpenChange }: TopUpModalProps) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Account Name</span>
-                  <span className="font-medium">John Doe - Delighto</span>
+                  <span className="font-medium">John Doe - PayVance</span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-3">

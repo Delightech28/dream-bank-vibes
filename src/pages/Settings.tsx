@@ -110,7 +110,7 @@ const Settings = () => {
         <Card>
           <CardContent className="p-6">
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">FunBank Version</p>
+              <p className="text-sm text-muted-foreground">PayVance Version</p>
               <p className="text-2xl font-bold">2.5.0</p>
               <p className="text-xs text-muted-foreground">Last updated: January 2025</p>
             </div>

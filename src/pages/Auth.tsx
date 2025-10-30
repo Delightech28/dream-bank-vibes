@@ -100,7 +100,7 @@ const Auth = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-primary shadow-glow mb-4">
             <Wallet className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">FunBank</h1>
+          <h1 className="text-3xl font-bold mb-2">PayVance</h1>
           <p className="text-muted-foreground flex items-center justify-center gap-2">
             Banking made fun & simple <Sparkles className="w-4 h-4 text-primary" />
           </p>

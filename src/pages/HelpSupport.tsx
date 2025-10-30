@@ -8,8 +8,8 @@ const HelpSupport = () => {
 
   const contactMethods = [
     { icon: MessageCircle, title: "Live Chat", description: "Chat with our support team", color: "text-primary" },
-    { icon: Mail, title: "Email Support", description: "support@funbank.com", color: "text-secondary" },
-    { icon: Phone, title: "Call Us", description: "+234 800 FUN BANK", color: "text-accent" },
+    { icon: Mail, title: "Email Support", description: "support@payvance.com", color: "text-secondary" },
+    { icon: Phone, title: "Call Us", description: "+234 800 PAYVANCE", color: "text-accent" },
   ];
 
   const faqs = [
