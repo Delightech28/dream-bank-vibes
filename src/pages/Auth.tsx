@@ -76,7 +76,7 @@ const Auth = () => {
         
         toast.success("Welcome back!");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -89,6 +89,24 @@ const Auth = () => {
 
         if (error) throw error;
         toast.success("Account created! Please check your email to verify.");
+        
+        // Automatically create virtual account after signup
+        if (data.user) {
+          toast.info("Setting up your virtual account...");
+          
+          try {
+            const { data: accountData, error: accountError } = await supabase.functions.invoke('create-virtual-account');
+            
+            if (accountError) {
+              console.error('Virtual account creation error:', accountError);
+              toast.error("Virtual account setup failed. You can create it later from your dashboard.");
+            } else if (accountData?.success) {
+              toast.success(`Virtual account ready! Account: ${accountData.account.account_number} (${accountData.account.bank_name})`);
+            }
+          } catch (accountError) {
+            console.error('Virtual account creation failed:', accountError);
+          }
+        }
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred");
