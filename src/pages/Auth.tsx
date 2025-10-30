@@ -267,7 +267,7 @@ const Auth = () => {
                       )}
                     </button>
                   </div>
-                  {isLogin && biometricAvailableForEmail && (
+                  {isLogin && (
                     <button
                       type="button"
                       onClick={handleBiometricAuth}
