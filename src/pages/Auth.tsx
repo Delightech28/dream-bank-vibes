@@ -238,32 +238,22 @@ const Auth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-20"
-                    disabled={loading}
-                  />
-                  <div className="absolute right-3 top-3 flex items-center gap-1">
-                    {isLogin && (
-                      <button
-                        type="button"
-                        onClick={handleBiometricAuth}
-                        className="text-primary hover:text-primary/80 transition-colors"
-                        title="Sign in with biometric"
-                      >
-                        <Fingerprint className="h-4 w-4" />
-                      </button>
-                    )}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-9 pr-10"
+                      disabled={loading}
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -272,6 +262,17 @@ const Auth = () => {
                       )}
                     </button>
                   </div>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={handleBiometricAuth}
+                      className="p-3 rounded-md border border-border bg-background hover:bg-muted transition-colors"
+                      title="Sign in with biometric"
+                      disabled={loading}
+                    >
+                      <Fingerprint className="h-4 w-4 text-primary" />
+                    </button>
+                  )}
                 </div>
               </div>
 
