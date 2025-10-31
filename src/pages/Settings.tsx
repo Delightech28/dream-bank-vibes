@@ -9,16 +9,41 @@ import { toast } from "sonner";
 const Settings = () => {
   const navigate = useNavigate();
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
     if (savedCurrency) setCurrency(savedCurrency);
+
+    // Set dark mode as default
+    const savedTheme = localStorage.getItem("theme");
+    if (!savedTheme) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setDarkMode(true);
+    } else {
+      setDarkMode(savedTheme === "dark");
+    }
   }, []);
+
+  const handleDarkModeToggle = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+    toast.success(`${newMode ? "Dark" : "Light"} mode enabled`);
+  };
 
   const handleCurrencyChange = () => {
     const newCurrency = currency === "NGN" ? "USD" : "NGN";
     setCurrency(newCurrency);
     localStorage.setItem("preferredCurrency", newCurrency);
+    window.dispatchEvent(new Event("storage"));
     toast.success(`Currency changed to ${newCurrency === "NGN" ? "Nigerian Naira (₦)" : "US Dollar ($)"}`);
   };
 
@@ -46,10 +71,10 @@ const Settings = () => {
                   </div>
                   <div>
                     <p className="font-medium">Dark Mode</p>
-                    <p className="text-sm text-muted-foreground">Currently enabled</p>
+                    <p className="text-sm text-muted-foreground">Currently {darkMode ? "enabled" : "disabled"}</p>
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch checked={darkMode} onCheckedChange={handleDarkModeToggle} />
               </div>
             </div>
           </CardContent>

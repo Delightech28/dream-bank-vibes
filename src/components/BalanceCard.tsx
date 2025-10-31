@@ -1,6 +1,7 @@
-import { Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BalanceCardProps {
   balance: number;
@@ -9,6 +10,7 @@ interface BalanceCardProps {
 export const BalanceCard = ({ balance }: BalanceCardProps) => {
   const [showBalance, setShowBalance] = useState(true);
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
+  const [growthPercentage, setGrowthPercentage] = useState(0);
   const exchangeRate = 1650; // NGN to USD rate
 
   useEffect(() => {
@@ -23,6 +25,52 @@ export const BalanceCard = ({ balance }: BalanceCardProps) => {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  useEffect(() => {
+    calculateGrowth();
+  }, [balance]);
+
+  const calculateGrowth = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Get last month's transactions
+      const { data: lastMonthTxs } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("type", "deposit")
+        .gte("created_at", lastMonth.toISOString())
+        .lt("created_at", currentMonth.toISOString());
+
+      // Get current month's transactions
+      const { data: currentMonthTxs } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("type", "deposit")
+        .gte("created_at", currentMonth.toISOString());
+
+      const lastMonthTotal = lastMonthTxs?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      const currentMonthTotal = currentMonthTxs?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+
+      if (lastMonthTotal > 0) {
+        const growth = ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100;
+        setGrowthPercentage(growth);
+      } else if (currentMonthTotal > 0) {
+        setGrowthPercentage(100);
+      } else {
+        setGrowthPercentage(0);
+      }
+    } catch (error) {
+      console.error("Error calculating growth:", error);
+    }
+  };
 
   const displayBalance = currency === "USD" ? balance / exchangeRate : balance;
   const currencySymbol = currency === "NGN" ? "₦" : "$";
@@ -49,8 +97,17 @@ export const BalanceCard = ({ balance }: BalanceCardProps) => {
             })}` : "••••••"}
           </h1>
           <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-primary font-medium">+12.5%</span>
+            {growthPercentage >= 0 ? (
+              <>
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="text-primary font-medium">+{growthPercentage.toFixed(1)}%</span>
+              </>
+            ) : (
+              <>
+                <TrendingDown className="w-4 h-4 text-destructive" />
+                <span className="text-destructive font-medium">{growthPercentage.toFixed(1)}%</span>
+              </>
+            )}
             <span className="text-muted-foreground">vs last month</span>
           </div>
         </div>

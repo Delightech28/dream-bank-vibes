@@ -215,7 +215,7 @@ const Profile = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
+            <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
               <div className="text-center">
                 <p className="text-2xl font-bold text-primary">{cardCount}</p>
                 <p className="text-xs text-muted-foreground">Cards</p>
@@ -223,12 +223,6 @@ const Profile = () => {
               <div className="text-center">
                 <p className="text-2xl font-bold text-secondary">{transactionCount}</p>
                 <p className="text-xs text-muted-foreground">Transactions</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">
-                  {localStorage.getItem("currency") === "USD" ? "$" : "₦"}{balance}
-                </p>
-                <p className="text-xs text-muted-foreground">Balance</p>
               </div>
             </div>
           </CardContent>
