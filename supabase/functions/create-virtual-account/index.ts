@@ -98,6 +98,8 @@ Deno.serve(async (req) => {
       // Optional fields for better account management
       firstname: profile.full_name?.split(' ')[0] || 'PayVance',
       lastname: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
+      // Webhook URL for payment notifications
+      callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/flutterwave-webhook`,
     };
 
     // Only create permanent account if BVN is provided
