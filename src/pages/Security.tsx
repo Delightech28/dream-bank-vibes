@@ -5,6 +5,7 @@ import { ChevronLeft, Lock, Fingerprint, Smartphone, Key, Shield, Monitor } from
 import { useNavigate } from "react-router-dom";
 import { ChangePinModal } from "@/components/modals/ChangePinModal";
 import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
+import { TwoFactorSetupModal } from "@/components/modals/TwoFactorSetupModal";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ const Security = () => {
   const navigate = useNavigate();
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -23,26 +25,95 @@ const Security = () => {
     const biometric = localStorage.getItem('biometricEnabled');
     setBiometricEnabled(biometric === 'true');
     
+    fetchTwoFactorStatus();
     fetchSessions();
     calculateSecurityScore();
+    trackCurrentSession();
   }, []);
 
   useEffect(() => {
     calculateSecurityScore();
   }, [biometricEnabled, twoFactorEnabled]);
 
-  const fetchSessions = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      // Current session data
-      setSessions([{
-        id: session.access_token,
-        device: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser',
-        location: 'Current Location',
-        lastActive: 'Just now',
-        current: true
-      }]);
+  const fetchTwoFactorStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("totp_enabled")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        setTwoFactorEnabled(profile.totp_enabled || false);
+      }
+    } catch (error) {
+      console.error("Error fetching 2FA status:", error);
     }
+  };
+
+  const fetchSessions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userSessions } = await supabase
+        .from("user_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("last_active", { ascending: false });
+
+      if (userSessions) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const formattedSessions = userSessions.map((s) => ({
+          id: s.id,
+          device: s.device_info || "Unknown Device",
+          location: s.location || "Unknown Location",
+          lastActive: formatLastActive(s.last_active),
+          current: session?.access_token === s.id,
+        }));
+        setSessions(formattedSessions);
+      }
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  };
+
+  const trackCurrentSession = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const deviceInfo = navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser';
+      const userAgent = navigator.userAgent;
+
+      await supabase.from("user_sessions").insert({
+        user_id: user.id,
+        device_info: deviceInfo,
+        user_agent: userAgent,
+        location: "Current Location",
+        is_active: true,
+      });
+    } catch (error) {
+      console.error("Error tracking session:", error);
+    }
+  };
+
+  const formatLastActive = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
   };
 
   const calculateSecurityScore = () => {
@@ -118,11 +189,49 @@ const Security = () => {
     }
   };
 
+  const handleTwoFactorToggle = async (enabled: boolean) => {
+    if (enabled) {
+      setShowTwoFactorModal(true);
+    } else {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+          .from("profiles")
+          .update({ totp_enabled: false, totp_secret: null })
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        setTwoFactorEnabled(false);
+        toast.success("Two-factor authentication disabled");
+      } catch (error) {
+        toast.error("Failed to disable 2FA");
+      }
+    }
+  };
+
+  const handleTwoFactorSuccess = () => {
+    setTwoFactorEnabled(true);
+    fetchSessions();
+  };
+
   const handleEndSession = async (sessionId: string) => {
     try {
-      await supabase.auth.signOut();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Mark session as inactive
+      const { error } = await supabase
+        .from("user_sessions")
+        .update({ is_active: false })
+        .eq("id", sessionId);
+
+      if (error) throw error;
+
       toast.success("Session ended successfully");
-      navigate("/auth");
+      fetchSessions();
     } catch (error: any) {
       toast.error("Failed to end session");
     }
@@ -166,7 +275,7 @@ const Security = () => {
                   <p className="text-sm text-muted-foreground">Extra security layer</p>
                 </div>
               </div>
-              <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+              <Switch checked={twoFactorEnabled} onCheckedChange={handleTwoFactorToggle} />
             </div>
 
             <button 
@@ -271,6 +380,11 @@ const Security = () => {
 
       <ChangePinModal open={showChangePinModal} onOpenChange={setShowChangePinModal} />
       <ChangePasswordModal open={showChangePasswordModal} onOpenChange={setShowChangePasswordModal} />
+      <TwoFactorSetupModal 
+        open={showTwoFactorModal} 
+        onOpenChange={setShowTwoFactorModal}
+        onSuccess={handleTwoFactorSuccess}
+      />
     </div>
   );
 };

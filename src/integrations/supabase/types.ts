@@ -26,6 +26,8 @@ export type Database = {
           full_name: string | null
           id: string
           phone_number: string | null
+          totp_enabled: boolean | null
+          totp_secret: string | null
           updated_at: string
           user_id: string
           virtual_account_bank: string | null
@@ -43,6 +45,8 @@ export type Database = {
           full_name?: string | null
           id: string
           phone_number?: string | null
+          totp_enabled?: boolean | null
+          totp_secret?: string | null
           updated_at?: string
           user_id: string
           virtual_account_bank?: string | null
@@ -60,6 +64,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone_number?: string | null
+          totp_enabled?: boolean | null
+          totp_secret?: string | null
           updated_at?: string
           user_id?: string
           virtual_account_bank?: string | null
@@ -132,6 +138,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_active: string | null
+          location: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active?: string | null
+          location?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_active?: string | null
+          location?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       wallets: {
         Row: {

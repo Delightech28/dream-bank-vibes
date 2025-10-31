@@ -15,6 +15,7 @@ import { toast } from "sonner";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
@@ -30,7 +31,16 @@ const Dashboard = () => {
   useEffect(() => {
     fetchWalletBalance();
     fetchRecentTransactions();
+    
+    // Load currency preference
+    const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+    if (savedCurrency) setCurrency(savedCurrency);
   }, []);
+
+  const handleCurrencyChange = (newCurrency: "NGN" | "USD") => {
+    setCurrency(newCurrency);
+    localStorage.setItem("preferredCurrency", newCurrency);
+  };
 
   const fetchWalletBalance = async () => {
     try {
@@ -139,7 +149,11 @@ const Dashboard = () => {
   return (
     <div className="pb-24 md:pb-8">
       {/* Balance Card */}
-      <BalanceCard balance={balance} />
+      <BalanceCard 
+        balance={balance} 
+        currency={currency}
+        onCurrencyChange={handleCurrencyChange}
+      />
 
       {/* Quick Actions */}
       <div className="px-4 mb-6">
