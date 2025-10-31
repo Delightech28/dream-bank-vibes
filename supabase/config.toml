@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.create-virtual-account]
 verify_jwt = true
 
+[functions.update-profile]
+verify_jwt = true
+
 [functions.vtpass-purchase]
 verify_jwt = true
 

@@ -38,15 +38,10 @@ Deno.serve(async (req) => {
 
     console.log('Creating virtual account for user:', user.id);
 
-    // Parse request body for NIN and other params
-    const body = await req.json().catch(() => ({}));
-    const providedNin = body.nin;
-    const amount = body.amount || 100;
-
-    // Get user profile
+    // Get user profile with all needed data
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('full_name, virtual_account_number, nin, is_permanent_account')
+      .select('full_name, virtual_account_number, virtual_account_bank, nin, is_permanent_account')
       .eq('user_id', user.id)
       .single();
 
@@ -74,56 +69,16 @@ Deno.serve(async (req) => {
       throw new Error('FLUTTERWAVE_SECRET_KEY not configured');
     }
 
-    // Determine NIN to use (from request or profile)
-    let nin = providedNin || profile.nin;
-    let isPermanent = false;
-
-    // If NIN provided, validate it with Flutterwave
-    if (nin) {
-      console.log('Validating NIN with Flutterwave...');
-      
-      const customerValidationResponse = await fetch(
-        'https://api.flutterwave.com/v3/customers',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            nin,
-          }),
-        }
-      );
-
-      const validationData = await customerValidationResponse.json();
-      console.log('NIN validation response:', validationData);
-
-      if (validationData.status === 'success' && validationData.data?.risk_action === 'allow') {
-        isPermanent = true;
-        console.log('NIN validated successfully - creating permanent account');
-        
-        // Update profile with NIN
-        if (providedNin) {
-          await supabaseClient
-            .from('profiles')
-            .update({ nin: providedNin })
-            .eq('user_id', user.id);
-        }
-      } else {
-        console.log('NIN validation failed or risk action not allowed');
-        nin = null; // Don't use NIN if validation failed
-      }
-    }
-
-    // Check if virtual account already exists
-    if (profile.virtual_account_number && !providedNin) {
+    // Check if virtual account already exists (no regeneration)
+    if (profile.virtual_account_number) {
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Virtual account already exists',
+          message: profile.is_permanent_account 
+            ? 'Permanent account already exists' 
+            : 'Account already exists. Transfer ₦100 to activate.',
           account_number: profile.virtual_account_number,
+          bank: profile.virtual_account_bank,
           permanent: profile.is_permanent_account,
         }),
         {
@@ -133,8 +88,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate unique reference
-    const reference = `ref_${user.id}_${Date.now()}`;
+    // Determine if creating permanent or dynamic account
+    const nin = profile.nin;
+    const isPermanent = profile.is_permanent_account && !!nin;
+    const amount = 100;
+
+    // Generate unique reference (format: PVANCE_userId_timestamp for webhook)
+    const reference = `PVANCE_${user.id}_${Date.now()}`;
     const tx_ref = reference;
 
     const fullName = profile.full_name || 'PayVance User';

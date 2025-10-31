@@ -15,7 +15,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [nin, setNin] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [biometricAvailableForEmail, setBiometricAvailableForEmail] = useState(false);
@@ -90,33 +89,6 @@ const Auth = () => {
 
         if (error) throw error;
         toast.success("Account created! Please check your email to verify.");
-        
-        // Automatically create virtual account after signup
-        if (data.user) {
-          toast.info("Setting up your virtual account...");
-          
-          // Wait a moment for profile to be created
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          try {
-            const { data: accountData, error: accountError } = await supabase.functions.invoke('create-virtual-account', {
-              body: nin ? { nin, amount: 100 } : { amount: 100 }
-            });
-            
-            if (accountError) {
-              console.error('Virtual account creation error:', accountError);
-              toast.error("Virtual account setup failed. You can create it later from your dashboard.");
-            } else if (accountData?.success) {
-              if (accountData.permanent) {
-                toast.success(`Permanent virtual account created! Account: ${accountData.account_number} (${accountData.bank})`);
-              } else {
-                toast.success(`Virtual account ready! Transfer ₦100 to ${accountData.account_number} (${accountData.bank})`);
-              }
-            }
-          } catch (accountError) {
-            console.error('Virtual account creation failed:', accountError);
-          }
-        }
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred");
@@ -241,29 +213,6 @@ const Auth = () => {
                         disabled={loading}
                       />
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="nin">NIN (Optional - for permanent account)</Label>
-                    <div className="relative">
-                      <Wallet className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="nin"
-                        type="text"
-                        placeholder="12345678901"
-                        value={nin}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '').slice(0, 11);
-                          setNin(value);
-                        }}
-                        className="pl-9"
-                        disabled={loading}
-                        maxLength={11}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {nin ? (nin.length === 11 ? "✓ Permanent account—no expiry!" : `${11 - nin.length} digits remaining`) : "Enter 11-digit NIN for permanent virtual account"}
-                    </p>
                   </div>
                 </>
               )}

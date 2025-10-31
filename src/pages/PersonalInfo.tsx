@@ -21,7 +21,9 @@ const PersonalInfo = () => {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
-  const [bvn, setBvn] = useState("");
+  const [nin, setNin] = useState("");
+  const [ninVerified, setNinVerified] = useState(false);
+  const [verifyingNin, setVerifyingNin] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [virtualAccountNumber, setVirtualAccountNumber] = useState("");
@@ -58,7 +60,8 @@ const PersonalInfo = () => {
         setFullName(profile.full_name || "");
         setPhoneNumber(profile.phone_number || "");
         setAddress(profile.address || "");
-        setBvn(profile.bvn || "");
+        setNin(profile.nin || "");
+        setNinVerified(profile.is_permanent_account || false);
         setAccountNumber(profile.account_number || "");
         setVirtualAccountNumber(profile.virtual_account_number || "");
         setVirtualAccountBank(profile.virtual_account_bank || "");
@@ -84,6 +87,35 @@ const PersonalInfo = () => {
     }
   };
 
+  const handleVerifyNin = async () => {
+    if (!nin || nin.length !== 11) {
+      toast.error("Please enter a valid 11-digit NIN");
+      return;
+    }
+
+    setVerifyingNin(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-profile', {
+        body: { nin }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setNinVerified(true);
+        toast.success("NIN verified successfully! You can now create a permanent account.");
+        await fetchProfile(); // Refresh profile data
+      } else {
+        toast.error(data.message || "NIN verification failed");
+      }
+    } catch (error: any) {
+      console.error('NIN verification error:', error);
+      toast.error("Failed to verify NIN");
+    } finally {
+      setVerifyingNin(false);
+    }
+  };
+
   const handleSaveChanges = async () => {
     setLoading(true);
     try {
@@ -94,7 +126,6 @@ const PersonalInfo = () => {
           phone_number: phoneNumber,
           date_of_birth: dateOfBirth?.toISOString().split('T')[0],
           address: address,
-          bvn: bvn,
           avatar_url: avatarUrl,
         })
         .eq("user_id", userId);
@@ -390,19 +421,46 @@ const PersonalInfo = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bvn">BVN</Label>
-              <Input 
-                id="bvn" 
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={bvn}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  setBvn(value);
-                }}
-                maxLength={11}
-              />
+              <Label htmlFor="nin">National Identity Number (NIN)</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="nin" 
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={nin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 11) {
+                      setNin(value);
+                    }
+                  }}
+                  maxLength={11}
+                  placeholder="Enter 11-digit NIN"
+                  className="font-mono tracking-wider"
+                  disabled={ninVerified}
+                />
+                {!ninVerified && nin.length === 11 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleVerifyNin}
+                    disabled={verifyingNin}
+                    className="whitespace-nowrap"
+                  >
+                    {verifyingNin ? "Verifying..." : "Verify"}
+                  </Button>
+                )}
+              </div>
+              {ninVerified && (
+                <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <span>✓</span> NIN verified - You can create a permanent account
+                </p>
+              )}
+              {!ninVerified && (
+                <p className="text-xs text-muted-foreground">
+                  💡 Add & verify your NIN to create a permanent virtual account with no expiry
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
