@@ -11,6 +11,7 @@ import {
   Package,
   LucideIcon 
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface TransactionItemProps {
   name: string;
@@ -38,6 +39,24 @@ const getIconComponent = (iconName: string): LucideIcon => {
 
 export const TransactionItem = ({ name, amount, type, date, icon }: TransactionItemProps) => {
   const IconComponent = getIconComponent(icon);
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
+  const exchangeRate = 1650;
+
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+    if (savedCurrency) setCurrency(savedCurrency);
+    
+    const handleStorageChange = () => {
+      const newCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+      if (newCurrency) setCurrency(newCurrency);
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const displayAmount = currency === "USD" ? amount / exchangeRate : amount;
+  const currencySymbol = currency === "NGN" ? "₦" : "$";
   
   return (
     <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
@@ -54,7 +73,10 @@ export const TransactionItem = ({ name, amount, type, date, icon }: TransactionI
       </div>
       <div className="text-right">
         <p className={`font-semibold ${type === "income" ? "text-primary" : "text-foreground"}`}>
-          {type === "income" ? "+" : "-"}₦{Math.abs(amount).toLocaleString()}
+          {type === "income" ? "+" : "-"}{currencySymbol}{Math.abs(displayAmount).toLocaleString(undefined, {
+            minimumFractionDigits: currency === "USD" ? 2 : 0,
+            maximumFractionDigits: currency === "USD" ? 2 : 2
+          })}
         </p>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { ChevronLeft, Moon, Globe, DollarSign, Download, Trash2 } from "lucide-r
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -15,27 +16,62 @@ const Settings = () => {
     const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
     if (savedCurrency) setCurrency(savedCurrency);
 
-    // Set dark mode as default
-    const savedTheme = localStorage.getItem("theme");
-    if (!savedTheme) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setDarkMode(true);
-    } else {
-      setDarkMode(savedTheme === "dark");
-    }
+    loadThemeFromDB();
   }, []);
 
-  const handleDarkModeToggle = () => {
+  const loadThemeFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("theme")
+        .eq("user_id", user.id)
+        .single();
+
+      const savedTheme = profile?.theme || "dark";
+      setDarkMode(savedTheme === "dark");
+      
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      localStorage.setItem("theme", savedTheme);
+    } catch (error) {
+      console.error("Error loading theme:", error);
+      // Default to dark mode on error
+      setDarkMode(true);
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+  };
+
+  const handleDarkModeToggle = async () => {
     const newMode = !darkMode;
+    const newTheme = newMode ? "dark" : "light";
+    
     setDarkMode(newMode);
     if (newMode) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
     }
+    localStorage.setItem("theme", newTheme);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ theme: newTheme })
+          .eq("user_id", user.id);
+      }
+    } catch (error) {
+      console.error("Error saving theme:", error);
+    }
+
     toast.success(`${newMode ? "Dark" : "Light"} mode enabled`);
   };
 

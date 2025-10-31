@@ -32,10 +32,23 @@ const Transactions = () => {
   const [filterType, setFilterType] = useState("all");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const { toast } = useToast();
+  const exchangeRate = 1650; // NGN to USD rate
 
   useEffect(() => {
     fetchTransactions();
+    
+    const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+    if (savedCurrency) setCurrency(savedCurrency);
+    
+    const handleStorageChange = () => {
+      const newCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+      if (newCurrency) setCurrency(newCurrency);
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const fetchTransactions = async () => {
@@ -87,6 +100,11 @@ const Transactions = () => {
     .filter(t => t.type !== 'topup' && t.status === 'completed')
     .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
+  const displayIncome = currency === "USD" ? totalIncome / exchangeRate : totalIncome;
+  const displayExpenses = currency === "USD" ? totalExpenses / exchangeRate : totalExpenses;
+  const currencySymbol = currency === "NGN" ? "₦" : "$";
+  const fractionDigits = currency === "USD" ? 2 : 0;
+
   return (
     <div className="pb-24 md:pb-8">
       <div className="px-4 pt-6 pb-4">
@@ -126,14 +144,24 @@ const Transactions = () => {
           <Card className="shadow-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Income</p>
-              <p className="text-xl font-bold text-primary">+₦{totalIncome.toLocaleString()}</p>
+              <p className="text-xl font-bold text-primary">
+                +{currencySymbol}{displayIncome.toLocaleString(undefined, { 
+                  minimumFractionDigits: fractionDigits,
+                  maximumFractionDigits: fractionDigits
+                })}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">Total deposits</p>
             </CardContent>
           </Card>
           <Card className="shadow-purple-glow border-0">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-              <p className="text-xl font-bold text-secondary">-₦{totalExpenses.toLocaleString()}</p>
+              <p className="text-xl font-bold text-secondary">
+                -{currencySymbol}{displayExpenses.toLocaleString(undefined, { 
+                  minimumFractionDigits: fractionDigits,
+                  maximumFractionDigits: fractionDigits
+                })}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">Total spent</p>
             </CardContent>
           </Card>

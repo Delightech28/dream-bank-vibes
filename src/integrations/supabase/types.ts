@@ -28,6 +28,7 @@ export type Database = {
           is_permanent_account: boolean | null
           nin: string | null
           phone_number: string | null
+          theme: string | null
           totp_enabled: boolean | null
           totp_secret: string | null
           updated_at: string
@@ -49,6 +50,7 @@ export type Database = {
           is_permanent_account?: boolean | null
           nin?: string | null
           phone_number?: string | null
+          theme?: string | null
           totp_enabled?: boolean | null
           totp_secret?: string | null
           updated_at?: string
@@ -70,6 +72,7 @@ export type Database = {
           is_permanent_account?: boolean | null
           nin?: string | null
           phone_number?: string | null
+          theme?: string | null
           totp_enabled?: boolean | null
           totp_secret?: string | null
           updated_at?: string
