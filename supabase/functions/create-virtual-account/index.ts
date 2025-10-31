@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
       email,
       reference,
       tx_ref,
+      narration: `PayVancee / ${fullName}`,
       customer: {
         name: fullName,
       },
