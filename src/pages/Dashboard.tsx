@@ -18,11 +18,6 @@ const Dashboard = () => {
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
-  const [virtualAccount, setVirtualAccount] = useState<{
-    accountNumber: string;
-    bankName: string;
-    accountName: string;
-  } | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Array<{
     id: string;
     name: string;
@@ -35,7 +30,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchWalletBalance();
     fetchRecentTransactions();
-    fetchVirtualAccount();
   }, []);
 
   const fetchWalletBalance = async () => {
@@ -64,31 +58,6 @@ const Dashboard = () => {
     }
   };
 
-  const fetchVirtualAccount = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('virtual_account_number, virtual_account_bank, virtual_account_name')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) throw error;
-
-      if (profile?.virtual_account_number) {
-        setVirtualAccount({
-          accountNumber: profile.virtual_account_number,
-          bankName: profile.virtual_account_bank || '',
-          accountName: profile.virtual_account_name || '',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching virtual account:', error);
-    }
-  };
 
   const fetchRecentTransactions = async () => {
     try {
@@ -190,58 +159,6 @@ const Dashboard = () => {
             <QuickAction icon={<Zap className="w-5 h-5" />} label="Bills" />
           </div>
         </div>
-      </div>
-
-      {/* Virtual Account Details */}
-      <div className="px-4 mb-6">
-        <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                <CreditCard className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold mb-3">Bank Transfer Account</h3>
-                {virtualAccount ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Account Number</p>
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono font-semibold">{virtualAccount.accountNumber}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => {
-                            navigator.clipboard.writeText(virtualAccount.accountNumber);
-                            toast.success('Account number copied!');
-                          }}
-                        >
-                          Copy
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Bank Name</p>
-                      <p className="font-semibold">{virtualAccount.bankName}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Account Name</p>
-                      <p className="font-semibold">{virtualAccount.accountName}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      💡 Transfer money from any Nigerian bank to this account number and it will automatically be credited to your PayVance wallet!
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Generate your virtual account to receive payments
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* My Cards */}
