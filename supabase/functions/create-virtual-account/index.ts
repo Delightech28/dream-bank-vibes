@@ -99,11 +99,11 @@ Deno.serve(async (req) => {
 
     const fullName = profile.full_name || 'PayVance User';
     const requestBody: any = {
+      email,
       reference,
       tx_ref,
       customer: {
         name: fullName,
-        email,
       },
       currency: 'NGN',
       callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/flutterwave-webhook`,
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     // Add NIN for permanent account
     if (isPermanent && nin) {
       requestBody.is_permanent = true;
-      requestBody.customer.nin = nin;
+      requestBody.bvn = nin;
       console.log('Creating permanent virtual account with NIN');
     } else {
       requestBody.amount = amount;
