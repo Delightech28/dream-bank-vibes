@@ -124,15 +124,17 @@ const Security = () => {
   };
 
   const handleBiometricToggle = async (enabled: boolean) => {
-    setBiometricEnabled(enabled);
-    localStorage.setItem('biometricEnabled', enabled.toString());
-    
     if (enabled) {
+      // Check if HTTPS or localhost
+      const isSecureContext = window.isSecureContext;
+      if (!isSecureContext) {
+        toast.error("Biometric authentication requires HTTPS");
+        return;
+      }
+
       // Check if WebAuthn is supported
       if (!window.PublicKeyCredential) {
         toast.error("Biometric authentication is not supported on this device");
-        setBiometricEnabled(false);
-        localStorage.setItem('biometricEnabled', 'false');
         return;
       }
 
@@ -147,6 +149,9 @@ const Security = () => {
         // Create registration options
         const challenge = new Uint8Array(32);
         crypto.getRandomValues(challenge);
+        
+        const userId = new Uint8Array(16);
+        crypto.getRandomValues(userId);
 
         const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
           challenge,
@@ -155,16 +160,20 @@ const Security = () => {
             id: window.location.hostname,
           },
           user: {
-            id: new Uint8Array(16),
+            id: userId,
             name: user.email,
             displayName: user.email,
           },
-          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          pubKeyCredParams: [
+            { alg: -7, type: "public-key" },
+            { alg: -257, type: "public-key" }
+          ],
           authenticatorSelection: {
             authenticatorAttachment: "platform",
-            userVerification: "required",
+            userVerification: "preferred",
           },
           timeout: 60000,
+          attestation: "none",
         };
 
         // Create credential
@@ -175,16 +184,30 @@ const Security = () => {
         if (credential) {
           // Store credential ID
           const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-          localStorage.setItem(`biometric_${user.email}`, JSON.stringify(credentialId));
+          localStorage.setItem(`biometric_${user.email}`, credentialId);
+          localStorage.setItem('biometricEnabled', 'true');
+          setBiometricEnabled(true);
           toast.success("Biometric authentication enabled successfully!");
         }
       } catch (error: any) {
         console.error("Biometric setup error:", error);
-        toast.error("Failed to setup biometric authentication");
+        let errorMessage = "Failed to setup biometric authentication";
+        
+        if (error.name === "NotAllowedError") {
+          errorMessage = "Biometric authentication was cancelled or not allowed";
+        } else if (error.name === "NotSupportedError") {
+          errorMessage = "This device doesn't support biometric authentication";
+        } else if (error.name === "InvalidStateError") {
+          errorMessage = "Biometric credentials already exist for this device";
+        }
+        
+        toast.error(errorMessage);
         setBiometricEnabled(false);
         localStorage.setItem('biometricEnabled', 'false');
       }
     } else {
+      setBiometricEnabled(false);
+      localStorage.setItem('biometricEnabled', 'false');
       toast.success("Biometric authentication disabled");
     }
   };

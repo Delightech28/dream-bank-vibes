@@ -3,9 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ChevronLeft, Moon, Globe, DollarSign, Download, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
+
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
+    if (savedCurrency) setCurrency(savedCurrency);
+  }, []);
+
+  const handleCurrencyChange = () => {
+    const newCurrency = currency === "NGN" ? "USD" : "NGN";
+    setCurrency(newCurrency);
+    localStorage.setItem("preferredCurrency", newCurrency);
+    toast.success(`Currency changed to ${newCurrency === "NGN" ? "Nigerian Naira (₦)" : "US Dollar ($)"}`);
+  };
 
   return (
     <div className="pb-24 md:pb-8 min-h-screen">
@@ -59,14 +74,19 @@ const Settings = () => {
               </div>
             </button>
 
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <button 
+              onClick={handleCurrencyChange}
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-accent" />
                 </div>
                 <div className="text-left">
                   <p className="font-medium">Currency</p>
-                  <p className="text-sm text-muted-foreground">Nigerian Naira (₦)</p>
+                  <p className="text-sm text-muted-foreground">
+                    {currency === "NGN" ? "Nigerian Naira (₦)" : "US Dollar ($)"}
+                  </p>
                 </div>
               </div>
             </button>
