@@ -14,6 +14,9 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [userId, setUserId] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [balance, setBalance] = useState("0.00");
+  const [transactionCount, setTransactionCount] = useState(0);
+  const [cardCount, setCardCount] = useState(0);
   
   const menuItems = [
     { icon: <User className="w-5 h-5" />, label: "Personal Information", badge: null, path: "/personal-info" },
@@ -25,6 +28,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfile();
+    fetchWalletData();
   }, []);
 
   const fetchProfile = async () => {
@@ -62,9 +66,56 @@ const Profile = () => {
             setAvatarUrl(data.publicUrl);
           }
         }
+      } else {
+        // If profile doesn't exist, create one for Google sign-in users
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: crypto.randomUUID(),
+            user_id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          }]);
+        
+        if (!insertError) {
+          setFullName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
+        }
       }
     } catch (error) {
       console.error("Error in fetchProfile:", error);
+    }
+  };
+
+  const fetchWalletData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch wallet balance
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (wallet) {
+        const currency = localStorage.getItem("currency") || "NGN";
+        const rate = currency === "USD" ? 0.0013 : 1;
+        const convertedBalance = parseFloat(String(wallet.balance)) * rate;
+        setBalance(convertedBalance.toFixed(2));
+      }
+
+      // Fetch transaction count
+      const { count: txCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setTransactionCount(txCount || 0);
+
+      // For now, set cards to 0 (you can implement cards table later)
+      setCardCount(0);
+    } catch (error) {
+      console.error("Error fetching wallet data:", error);
     }
   };
 
@@ -166,15 +217,17 @@ const Profile = () => {
             
             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
               <div className="text-center">
-                <p className="text-2xl font-bold text-primary">12</p>
+                <p className="text-2xl font-bold text-primary">{cardCount}</p>
                 <p className="text-xs text-muted-foreground">Cards</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-secondary">348</p>
+                <p className="text-2xl font-bold text-secondary">{transactionCount}</p>
                 <p className="text-xs text-muted-foreground">Transactions</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">₦24.5K</p>
+                <p className="text-2xl font-bold">
+                  {localStorage.getItem("currency") === "USD" ? "$" : "₦"}{balance}
+                </p>
                 <p className="text-xs text-muted-foreground">Balance</p>
               </div>
             </div>

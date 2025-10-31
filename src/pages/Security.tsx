@@ -54,6 +54,46 @@ const Security = () => {
     }
   };
 
+  const getDeviceInfo = (userAgent: string): string => {
+    // Check for mobile devices first
+    if (/iPhone/.test(userAgent)) {
+      const match = userAgent.match(/iPhone OS (\d+)_(\d+)/);
+      return match ? `iPhone (iOS ${match[1]})` : 'iPhone';
+    }
+    if (/iPad/.test(userAgent)) {
+      return 'iPad';
+    }
+    if (/Android/.test(userAgent)) {
+      const match = userAgent.match(/Android (\d+)/);
+      const device = userAgent.match(/;\s*([^;)]+)\s+Build/);
+      if (device && device[1]) {
+        return `${device[1]} (Android ${match ? match[1] : ''})`;
+      }
+      return match ? `Android ${match[1]}` : 'Android Device';
+    }
+    
+    // Desktop browsers
+    if (/Windows/.test(userAgent)) {
+      if (/Edg/.test(userAgent)) return 'Edge on Windows';
+      if (/Chrome/.test(userAgent)) return 'Chrome on Windows';
+      if (/Firefox/.test(userAgent)) return 'Firefox on Windows';
+      return 'Windows PC';
+    }
+    if (/Macintosh/.test(userAgent)) {
+      if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) return 'Safari on Mac';
+      if (/Chrome/.test(userAgent)) return 'Chrome on Mac';
+      if (/Firefox/.test(userAgent)) return 'Firefox on Mac';
+      return 'Mac';
+    }
+    if (/Linux/.test(userAgent)) {
+      if (/Chrome/.test(userAgent)) return 'Chrome on Linux';
+      if (/Firefox/.test(userAgent)) return 'Firefox on Linux';
+      return 'Linux PC';
+    }
+    
+    return 'Unknown Device';
+  };
+
   const fetchSessions = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -68,12 +108,23 @@ const Security = () => {
 
       if (userSessions) {
         const { data: { session } } = await supabase.auth.getSession();
-        const formattedSessions = userSessions.map((s) => ({
+        const currentSessionId = sessionStorage.getItem('session_id');
+        
+        // Remove duplicate sessions with same user_agent
+        const uniqueSessions = userSessions.reduce((acc: any[], curr) => {
+          const exists = acc.find(s => s.user_agent === curr.user_agent);
+          if (!exists) {
+            acc.push(curr);
+          }
+          return acc;
+        }, []);
+        
+        const formattedSessions = uniqueSessions.map((s) => ({
           id: s.id,
-          device: s.device_info || "Unknown Device",
-          location: s.location || "Unknown Location",
+          device: getDeviceInfo(s.user_agent),
+          location: s.location || "Current Location",
           lastActive: formatLastActive(s.last_active),
-          current: session?.access_token === s.id,
+          current: s.id === currentSessionId,
         }));
         setSessions(formattedSessions);
       }
@@ -84,19 +135,38 @@ const Security = () => {
 
   const trackCurrentSession = async () => {
     try {
+      // Check if we already tracked this session
+      const existingSessionId = sessionStorage.getItem('session_id');
+      if (existingSessionId) {
+        // Update last_active for existing session
+        await supabase
+          .from("user_sessions")
+          .update({ last_active: new Date().toISOString() })
+          .eq("id", existingSessionId);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const deviceInfo = navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser';
       const userAgent = navigator.userAgent;
+      const deviceInfo = getDeviceInfo(userAgent);
 
-      await supabase.from("user_sessions").insert({
-        user_id: user.id,
-        device_info: deviceInfo,
-        user_agent: userAgent,
-        location: "Current Location",
-        is_active: true,
-      });
+      const { data, error } = await supabase
+        .from("user_sessions")
+        .insert({
+          user_id: user.id,
+          device_info: deviceInfo,
+          user_agent: userAgent,
+          location: "Current Location",
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        sessionStorage.setItem('session_id', data.id);
+      }
     } catch (error) {
       console.error("Error tracking session:", error);
     }
