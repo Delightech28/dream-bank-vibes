@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronDownIcon, Camera, Loader2 } from "lucide-react";
+import { ChevronLeft, Camera, Loader2, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ const PersonalInfo = () => {
   const [creatingVirtualAccount, setCreatingVirtualAccount] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -318,9 +319,11 @@ const PersonalInfo = () => {
                         onClick={() => {
                           navigator.clipboard.writeText(virtualAccountNumber);
                           toast.success("Account number copied!");
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
                         }}
                       >
-                        Copy
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>
@@ -352,72 +355,6 @@ const PersonalInfo = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <span className="text-xl">🇳🇬</span>
-                  <span className="text-sm text-muted-foreground">+234</span>
-                </div>
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="pl-20"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dob" className="px-1">Date of Birth</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="dob"
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-between font-normal",
-                      !dateOfBirth && "text-muted-foreground"
-                    )}
-                  >
-                    {dateOfBirth ? dateOfBirth.toLocaleDateString() : "Select date"}
-                    <ChevronDownIcon />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateOfBirth}
-                    captionLayout="dropdown"
-                    onSelect={(date) => {
-                      setDateOfBirth(date);
-                      setDatePickerOpen(false);
-                    }}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    defaultMonth={dateOfBirth || new Date(2000, 0)}
-                    fromYear={1900}
-                    toYear={new Date().getFullYear()}
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <p className="text-xs text-muted-foreground px-1">
-                You must be at least 18 years old
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input 
-                id="address" 
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
             </div>
 
             <div className="space-y-2">
