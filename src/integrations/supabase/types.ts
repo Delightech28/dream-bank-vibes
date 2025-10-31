@@ -25,6 +25,8 @@ export type Database = {
           flutterwave_reference: string | null
           full_name: string | null
           id: string
+          is_permanent_account: boolean | null
+          nin: string | null
           phone_number: string | null
           totp_enabled: boolean | null
           totp_secret: string | null
@@ -44,6 +46,8 @@ export type Database = {
           flutterwave_reference?: string | null
           full_name?: string | null
           id: string
+          is_permanent_account?: boolean | null
+          nin?: string | null
           phone_number?: string | null
           totp_enabled?: boolean | null
           totp_secret?: string | null
@@ -63,6 +67,8 @@ export type Database = {
           flutterwave_reference?: string | null
           full_name?: string | null
           id?: string
+          is_permanent_account?: boolean | null
+          nin?: string | null
           phone_number?: string | null
           totp_enabled?: boolean | null
           totp_secret?: string | null

@@ -37,24 +37,16 @@ Deno.serve(async (req) => {
     }
 
     console.log('Creating virtual account for user:', user.id);
-    console.log('User email:', user.email);
 
-    // Validate email exists
-    if (!user.email) {
-      console.error('User email is missing');
-      return new Response(
-        JSON.stringify({ error: 'User email is required for account creation' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    // Parse request body for NIN and other params
+    const body = await req.json().catch(() => ({}));
+    const providedNin = body.nin;
+    const amount = body.amount || 100;
 
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('full_name, virtual_account_number, bvn')
+      .select('full_name, virtual_account_number, nin, is_permanent_account')
       .eq('user_id', user.id)
       .single();
 
@@ -66,18 +58,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if virtual account already exists
-    if (profile.virtual_account_number) {
+    const email = user.email;
+    if (!email) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Virtual account already exists',
-          account: {
-            account_number: profile.virtual_account_number,
-          },
-        }),
+        JSON.stringify({ error: 'User email is required for account creation' }),
         {
-          status: 200,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -88,33 +74,94 @@ Deno.serve(async (req) => {
       throw new Error('FLUTTERWAVE_SECRET_KEY not configured');
     }
 
-    // Generate unique reference for Flutterwave
-    const tx_ref = `PVANCE_${user.id.slice(0, 8)}_${Date.now()}`;
+    // Determine NIN to use (from request or profile)
+    let nin = providedNin || profile.nin;
+    let isPermanent = false;
 
+    // If NIN provided, validate it with Flutterwave
+    if (nin) {
+      console.log('Validating NIN with Flutterwave...');
+      
+      const customerValidationResponse = await fetch(
+        'https://api.flutterwave.com/v3/customers',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            nin,
+          }),
+        }
+      );
+
+      const validationData = await customerValidationResponse.json();
+      console.log('NIN validation response:', validationData);
+
+      if (validationData.status === 'success' && validationData.data?.risk_action === 'allow') {
+        isPermanent = true;
+        console.log('NIN validated successfully - creating permanent account');
+        
+        // Update profile with NIN
+        if (providedNin) {
+          await supabaseClient
+            .from('profiles')
+            .update({ nin: providedNin })
+            .eq('user_id', user.id);
+        }
+      } else {
+        console.log('NIN validation failed or risk action not allowed');
+        nin = null; // Don't use NIN if validation failed
+      }
+    }
+
+    // Check if virtual account already exists
+    if (profile.virtual_account_number && !providedNin) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Virtual account already exists',
+          account_number: profile.virtual_account_number,
+          permanent: profile.is_permanent_account,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Generate unique reference
+    const reference = `ref_${user.id}_${Date.now()}`;
+    const tx_ref = reference;
+
+    const fullName = profile.full_name || 'PayVance User';
     const requestBody: any = {
-      email: user.email,
-      tx_ref: tx_ref,
-      amount: 100, // Minimum amount required by Flutterwave (in NGN)
-      // Optional fields for better account management
-      firstname: profile.full_name?.split(' ')[0] || 'PayVance',
-      lastname: profile.full_name?.split(' ').slice(1).join(' ') || 'User',
-      // Webhook URL for payment notifications
+      reference,
+      tx_ref,
+      customer: {
+        name: fullName,
+        email,
+      },
+      currency: 'NGN',
       callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/flutterwave-webhook`,
     };
 
-    // Only create permanent account if BVN is provided
-    if (profile.bvn) {
+    // Add NIN for permanent account
+    if (isPermanent && nin) {
       requestBody.is_permanent = true;
-      requestBody.bvn = profile.bvn;
-      console.log('Creating permanent virtual account with BVN');
+      requestBody.customer.nin = nin;
+      console.log('Creating permanent virtual account with NIN');
     } else {
-      // Create temporary/dynamic account without BVN requirement
-      console.log('Creating temporary virtual account (no BVN provided)');
+      requestBody.amount = amount;
+      console.log(`Creating temporary virtual account with amount: ${amount}`);
     }
 
-    console.log('Flutterwave request body:', JSON.stringify(requestBody, null, 2));
+    console.log('Flutterwave request:', JSON.stringify(requestBody, null, 2));
 
-    // Create virtual account with Flutterwave
+    // Create virtual account with Flutterwave v3
     const flutterwaveResponse = await fetch(
       'https://api.flutterwave.com/v3/virtual-account-numbers',
       {
@@ -131,21 +178,18 @@ Deno.serve(async (req) => {
     console.log('Flutterwave response:', flutterwaveData);
 
     if (flutterwaveData.status !== 'success') {
-      // Handle specific errors
-      if (flutterwaveResponse.status === 401) {
-        console.log('Flutterwave authentication failed - invalid API key');
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Virtual account setup failed. Please contact support.',
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      throw new Error(flutterwaveData.message || 'Failed to create virtual account');
+      const errorMessage = flutterwaveData.message || 'Failed to create virtual account';
+      console.error('Flutterwave error:', errorMessage);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: errorMessage,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const accountData = flutterwaveData.data;
@@ -156,8 +200,9 @@ Deno.serve(async (req) => {
       .update({
         virtual_account_number: accountData.account_number,
         virtual_account_bank: accountData.bank_name,
-        virtual_account_name: accountData.note || `${profile.full_name} - PayVance`,
+        virtual_account_name: accountData.account_name || fullName,
         flutterwave_reference: tx_ref,
+        is_permanent_account: isPermanent,
       })
       .eq('user_id', user.id);
 
@@ -171,13 +216,12 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Your bank account is ready!',
-        account: {
-          account_number: accountData.account_number,
-          bank_name: accountData.bank_name,
-          account_name: accountData.note || `${profile.full_name} - PayVance`,
-          flw_ref: accountData.flw_ref,
-        },
+        account_number: accountData.account_number,
+        bank: accountData.bank_name,
+        permanent: isPermanent,
+        message: isPermanent 
+          ? 'Permanent virtual account created!' 
+          : `Transfer ₦${amount} to activate your account`,
       }),
       {
         status: 200,

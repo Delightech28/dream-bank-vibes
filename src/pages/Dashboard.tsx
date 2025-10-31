@@ -18,6 +18,10 @@ const Dashboard = () => {
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [billsModalOpen, setBillsModalOpen] = useState(false);
+  const [showNinUpgrade, setShowNinUpgrade] = useState(false);
+  const [isPermanentAccount, setIsPermanentAccount] = useState(false);
+  const [ninInput, setNinInput] = useState("");
+  const [upgradingAccount, setUpgradingAccount] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<Array<{
     id: string;
     name: string;
@@ -30,6 +34,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchWalletBalance();
     fetchRecentTransactions();
+    checkAccountStatus();
   }, []);
 
   const fetchWalletBalance = async () => {
@@ -55,6 +60,56 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching wallet:', error);
       toast.error('Failed to load wallet balance');
+    }
+  };
+
+  const checkAccountStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_permanent_account, nin, virtual_account_number')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        setIsPermanentAccount(profile.is_permanent_account || false);
+        setShowNinUpgrade(!!(!profile.is_permanent_account && profile.virtual_account_number));
+      }
+    } catch (error) {
+      console.error('Error checking account status:', error);
+    }
+  };
+
+  const handleUpgradeAccount = async () => {
+    if (ninInput.length !== 11) {
+      toast.error("Please enter a valid 11-digit NIN");
+      return;
+    }
+
+    setUpgradingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-virtual-account', {
+        body: { nin: ninInput }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.permanent) {
+        toast.success("Account upgraded to permanent!");
+        setIsPermanentAccount(true);
+        setShowNinUpgrade(false);
+        setNinInput("");
+      } else {
+        toast.error(data?.message || "Failed to upgrade account");
+      }
+    } catch (error: any) {
+      console.error('Upgrade error:', error);
+      toast.error("Failed to upgrade account. Please try again.");
+    } finally {
+      setUpgradingAccount(false);
     }
   };
 
@@ -140,6 +195,53 @@ const Dashboard = () => {
     <div className="pb-24 md:pb-8">
       {/* Balance Card */}
       <BalanceCard balance={balance} />
+
+      {/* NIN Upgrade Banner */}
+      {showNinUpgrade && (
+        <div className="px-4 mb-6">
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    Upgrade to Permanent Account
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Enter your 11-digit NIN to get a permanent virtual account with no expiry
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter NIN"
+                      value={ninInput}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 11);
+                        setNinInput(value);
+                      }}
+                      maxLength={11}
+                      className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleUpgradeAccount}
+                      disabled={upgradingAccount || ninInput.length !== 11}
+                    >
+                      {upgradingAccount ? "Upgrading..." : "Upgrade"}
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowNinUpgrade(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="px-4 mb-6">
