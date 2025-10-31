@@ -147,13 +147,13 @@ const PersonalInfo = () => {
 
       if (error) throw error;
 
-      if (data.success) {
-        toast.success('Virtual account created successfully!');
-        setVirtualAccountNumber(data.account.account_number);
-        setVirtualAccountBank(data.account.bank_name);
-        setVirtualAccountName(data.account.account_name);
+      // Check if the response has success or account_number
+      if (data?.success || data?.account_number) {
+        toast.success(data.message || 'Virtual account created successfully!');
+        // Refresh profile to get updated account details
+        await fetchProfile();
       } else {
-        toast.error(data.error || 'Failed to create virtual account');
+        toast.error(data?.message || 'Failed to create virtual account');
       }
     } catch (error: any) {
       console.error('Error creating virtual account:', error);
