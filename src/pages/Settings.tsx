@@ -16,6 +16,11 @@ const Settings = () => {
     const savedCurrency = localStorage.getItem("preferredCurrency") as "NGN" | "USD" | null;
     if (savedCurrency) setCurrency(savedCurrency);
 
+    // Apply theme from localStorage immediately (synchronously)
+    const localTheme = localStorage.getItem("theme") || "dark";
+    setDarkMode(localTheme === "dark");
+    
+    // Then sync with database (asynchronously)
     loadThemeFromDB();
   }, []);
 
@@ -30,21 +35,24 @@ const Settings = () => {
         .eq("user_id", user.id)
         .single();
 
-      const savedTheme = profile?.theme || "dark";
-      setDarkMode(savedTheme === "dark");
-      
-      if (savedTheme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
+      if (profile?.theme) {
+        const dbTheme = profile.theme;
+        const localTheme = localStorage.getItem("theme");
+        
+        // Only update if DB theme is different from local
+        if (dbTheme !== localTheme) {
+          setDarkMode(dbTheme === "dark");
+          
+          if (dbTheme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          localStorage.setItem("theme", dbTheme);
+        }
       }
-      localStorage.setItem("theme", savedTheme);
     } catch (error) {
       console.error("Error loading theme:", error);
-      // Default to dark mode on error
-      setDarkMode(true);
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
     }
   };
 
