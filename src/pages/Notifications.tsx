@@ -1,12 +1,83 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { ChevronLeft, Bell, Mail, Smartphone, DollarSign } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    is_read: boolean;
+  }>>([]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setNotifications(data.map(n => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          time: formatTime(n.created_at),
+          is_read: n.is_read,
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      toast.error('Failed to mark notification as read');
+    }
+  };
 
   const notificationSettings = [
     {
@@ -73,17 +144,36 @@ const Notifications = () => {
           <CardContent className="p-6">
             <h3 className="font-semibold mb-4">Recent Notifications</h3>
             <div className="space-y-4">
-              {[
-                { title: "Payment Received", message: "You received ₦5,200 from Salary", time: "2 hours ago" },
-                { title: "Card Transaction", message: "₦15.99 debited from your card", time: "1 day ago" },
-                { title: "Top Up Successful", message: "₦10,000 added to your wallet", time: "2 days ago" },
-              ].map((notif, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/50">
-                  <p className="font-medium text-sm">{notif.title}</p>
-                  <p className="text-sm text-muted-foreground">{notif.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{notif.time}</p>
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => !notification.is_read && markAsRead(notification.id)}
+                    className={`p-3 rounded-lg transition-colors cursor-pointer ${
+                      notification.is_read
+                        ? "bg-muted/50"
+                        : "bg-primary/5 border border-primary/20"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="font-medium text-sm">{notification.title}</p>
+                      <span className="text-xs text-muted-foreground">
+                        {notification.time}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {notification.message}
+                    </p>
+                    {!notification.is_read && (
+                      <p className="text-xs text-primary mt-1">Tap to mark as read</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  No notifications yet
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>

@@ -58,19 +58,40 @@ const TopUp = () => {
   const [cardType, setCardType] = useState<CardType>("unknown");
   const [userEmail, setUserEmail] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [virtualAccount, setVirtualAccount] = useState({
+    bank: "",
+    number: "",
+    name: "",
+  });
 
   useEffect(() => {
     setCardType(detectCardType(cardNumber));
   }, [cardNumber]);
 
   useEffect(() => {
-    const getUserEmail = async () => {
+    const getUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setUserEmail(user.email);
       }
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('virtual_account_bank, virtual_account_number, virtual_account_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile) {
+          setVirtualAccount({
+            bank: profile.virtual_account_bank || "N/A",
+            number: profile.virtual_account_number || "N/A",
+            name: profile.virtual_account_name || "N/A",
+          });
+        }
+      }
     };
-    getUserEmail();
+    getUserData();
   }, []);
 
   const methods = [
@@ -270,15 +291,15 @@ const TopUp = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Bank Name</span>
-                    <span className="font-medium">PayVance Bank</span>
+                    <span className="font-medium">{virtualAccount.bank}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Account Number</span>
-                    <span className="font-medium">0123456789</span>
+                    <span className="font-medium">{virtualAccount.number}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Account Name</span>
-                    <span className="font-medium">John Doe - PayVance</span>
+                    <span className="font-medium">{virtualAccount.name}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">

@@ -15,6 +15,10 @@ import Security from "./pages/Security";
 import Settings from "./pages/Settings";
 import HelpSupport from "./pages/HelpSupport";
 import TopUp from "./pages/TopUp";
+import SendMoney from "./pages/SendMoney";
+import RequestMoney from "./pages/RequestMoney";
+import Bills from "./pages/Bills";
+import BillDetails from "./pages/BillDetails";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/Layout";
 
@@ -33,11 +37,15 @@ const App = () => (
           <Route path="/cards" element={<Layout><Cards /></Layout>} />
           <Route path="/profile" element={<Layout><Profile /></Layout>} />
           <Route path="/personal-info" element={<PersonalInfo />} />
-          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
           <Route path="/security" element={<Security />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help-support" element={<HelpSupport />} />
-          <Route path="/top-up" element={<TopUp />} />
+          <Route path="/top-up" element={<Layout><TopUp /></Layout>} />
+          <Route path="/send-money" element={<Layout><SendMoney /></Layout>} />
+          <Route path="/request-money" element={<Layout><RequestMoney /></Layout>} />
+          <Route path="/bills" element={<Layout><Bills /></Layout>} />
+          <Route path="/bills/:category" element={<Layout><BillDetails /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

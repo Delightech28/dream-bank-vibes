@@ -6,18 +6,12 @@ import { ArrowUpRight, ArrowDownLeft, Plus, CreditCard, TrendingUp, Zap } from "
 import { QuickAction } from "@/components/QuickAction";
 import { TransactionItem } from "@/components/TransactionItem";
 import { BalanceCard } from "@/components/BalanceCard";
-import { SendMoneyModal } from "@/components/modals/SendMoneyModal";
-import { RequestMoneyModal } from "@/components/modals/RequestMoneyModal";
-import { BillsModal } from "@/components/modals/BillsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
-  const [sendModalOpen, setSendModalOpen] = useState(false);
-  const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [billsModalOpen, setBillsModalOpen] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<Array<{
     id: string;
     name: string;
@@ -146,16 +140,16 @@ const Dashboard = () => {
       <div className="px-4 mb-6">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-4 gap-3">
-          <div onClick={() => setSendModalOpen(true)}>
+          <div onClick={() => navigate("/send-money")}>
             <QuickAction icon={<ArrowUpRight className="w-5 h-5" />} label="Send" />
           </div>
-          <div onClick={() => setRequestModalOpen(true)}>
+          <div onClick={() => navigate("/request-money")}>
             <QuickAction icon={<ArrowDownLeft className="w-5 h-5" />} label="Request" />
           </div>
           <div onClick={() => navigate("/top-up")}>
             <QuickAction icon={<Plus className="w-5 h-5" />} label="Top Up" />
           </div>
-          <div onClick={() => setBillsModalOpen(true)}>
+          <div onClick={() => navigate("/bills")}>
             <QuickAction icon={<Zap className="w-5 h-5" />} label="Bills" />
           </div>
         </div>
@@ -222,10 +216,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Modals */}
-      <SendMoneyModal open={sendModalOpen} onOpenChange={setSendModalOpen} />
-      <RequestMoneyModal open={requestModalOpen} onOpenChange={setRequestModalOpen} />
-      <BillsModal open={billsModalOpen} onOpenChange={setBillsModalOpen} />
     </div>
   );
 };
