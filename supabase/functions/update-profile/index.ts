@@ -67,30 +67,28 @@ Deno.serve(async (req) => {
 
     console.log('Validating NIN with Flutterwave...');
 
-    // Validate NIN with Flutterwave
-    const customerValidationResponse = await fetch(
-      'https://api.flutterwave.com/v3/customers',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          nin,
-        }),
-      }
-    );
+    // Validate NIN with Flutterwave - using full absolute URL
+    const validateUrl = 'https://api.flutterwave.com/v3/kyc/bvns/verification';
+    const customerValidationResponse = await fetch(validateUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        bvn: nin,
+        email,
+      }),
+    });
 
-    let errorMessage = 'Verification failed—please retry with a valid NIN.';
-    
     if (!customerValidationResponse.ok) {
       // Read as text first for non-JSON errors
       const rawText = await customerValidationResponse.text();
       console.error('Raw error response:', rawText);
       console.error('Response status:', customerValidationResponse.status);
 
+      let errorMessage = 'Verification failed—please retry with a valid NIN.';
+      
       // Try parsing as JSON if possible (Flutterwave errors are usually JSON)
       try {
         const errorData = JSON.parse(rawText);
@@ -99,7 +97,7 @@ Deno.serve(async (req) => {
         // Keep as text if not JSON (e.g., "Cannot POST...")
         errorMessage = rawText.startsWith('Cannot') 
           ? 'Endpoint error—check API URL.' 
-          : rawText.slice(0, 100) + '...';
+          : `Error ${customerValidationResponse.status}: ${rawText.slice(0, 100)}`;
       }
 
       return new Response(
