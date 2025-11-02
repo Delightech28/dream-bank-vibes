@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     console.log('Validating NIN with Flutterwave...');
 
     // Validate NIN with Flutterwave - using full absolute URL
-    const validateUrl = 'https://api.flutterwave.com/v3/kyc/bvns/verification';
+    const validateUrl = 'https://api.flutterwave.com/v3/customers';
     const customerValidationResponse = await fetch(validateUrl, {
       method: 'POST',
       headers: {
@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        bvn: nin,
         email,
+        nin,
       }),
     });
 
