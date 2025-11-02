@@ -83,6 +83,38 @@ Deno.serve(async (req) => {
       }
     );
 
+    let errorMessage = 'Verification failed—please retry with a valid NIN.';
+    
+    if (!customerValidationResponse.ok) {
+      // Read as text first for non-JSON errors
+      const rawText = await customerValidationResponse.text();
+      console.error('Raw error response:', rawText);
+      console.error('Response status:', customerValidationResponse.status);
+
+      // Try parsing as JSON if possible (Flutterwave errors are usually JSON)
+      try {
+        const errorData = JSON.parse(rawText);
+        errorMessage = errorData.message || rawText.slice(0, 100) + '...';
+      } catch (parseErr) {
+        // Keep as text if not JSON (e.g., "Cannot POST...")
+        errorMessage = rawText.startsWith('Cannot') 
+          ? 'Endpoint error—check API URL.' 
+          : rawText.slice(0, 100) + '...';
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: errorMessage 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Now safe to parse JSON (success case)
     const validationData = await customerValidationResponse.json();
     console.log('NIN validation response:', validationData);
 
