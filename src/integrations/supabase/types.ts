@@ -250,6 +250,7 @@ export type Database = {
     }
     Functions: {
       generate_account_number: { Args: never; Returns: string }
+      get_encryption_key: { Args: never; Returns: string }
     }
     Enums: {
       transaction_status: "pending" | "completed" | "failed" | "refunded"
