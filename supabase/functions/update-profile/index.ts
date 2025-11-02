@@ -82,22 +82,15 @@ Deno.serve(async (req) => {
     });
 
     if (!customerValidationResponse.ok) {
-      // Read as text first for non-JSON errors
       const rawText = await customerValidationResponse.text();
-      console.error('Raw error response:', rawText);
-      console.error('Response status:', customerValidationResponse.status);
+      console.error('Raw error:', rawText, 'Status:', customerValidationResponse.status);
 
-      let errorMessage = 'Verification failed—please retry with a valid NIN.';
-      
-      // Try parsing as JSON if possible (Flutterwave errors are usually JSON)
+      let errorMessage = 'NIN verification failed—retry.';
       try {
         const errorData = JSON.parse(rawText);
-        errorMessage = errorData.message || rawText.slice(0, 100) + '...';
-      } catch (parseErr) {
-        // Keep as text if not JSON (e.g., "Cannot POST...")
-        errorMessage = rawText.startsWith('Cannot') 
-          ? 'Endpoint error—check API URL.' 
-          : `Error ${customerValidationResponse.status}: ${rawText.slice(0, 100)}`;
+        errorMessage = errorData.message || rawText.slice(0, 100);
+      } catch {
+        errorMessage = `Error ${customerValidationResponse.status}: ${rawText}`;
       }
 
       return new Response(
@@ -112,50 +105,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Now safe to parse JSON (success case)
-    const validationData = await customerValidationResponse.json();
-    console.log('NIN validation response:', validationData);
+    const validateData = await customerValidationResponse.json();
+    console.log('NIN validation response:', validateData);
 
-    if (validationData.status === 'success' && validationData.data?.risk_action === 'allow') {
-      // NIN is valid, update profile
-      const { error: updateError } = await supabaseClient
-        .from('profiles')
-        .update({
-          nin: nin,
-          is_permanent_account: true,
-        })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Failed to update profile:', updateError);
-        throw updateError;
-      }
-
-      console.log('NIN verified and profile updated successfully');
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'NIN verified successfully',
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    } else {
-      console.log('NIN validation failed:', validationData.message);
+    if (validateData.risk_action !== 'allow') {
       return new Response(
         JSON.stringify({
           success: false,
-          message: validationData.message || 'Invalid NIN. Please check and try again.',
+          message: 'NIN not verified—use valid one.',
         }),
         {
-          status: 200,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
+
+    // NIN is valid, update profile
+    const { error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({
+        nin: nin,
+        is_permanent_account: true,
+      })
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('Failed to update profile:', updateError);
+      throw updateError;
+    }
+
+    console.log('NIN verified and profile updated successfully');
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'NIN verified successfully',
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error: any) {
     console.error('Error in update-profile:', error);
     return new Response(
