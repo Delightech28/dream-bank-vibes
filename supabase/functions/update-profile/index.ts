@@ -65,20 +65,27 @@ Deno.serve(async (req) => {
       throw new Error('FLUTTERWAVE_SECRET_KEY not configured');
     }
 
-    console.log('Validating NIN with Flutterwave... URL:', 'https://api.flutterwave.com/v3/customers');
-    console.log('Validating NIN with Flutterwave... URL:', 'https://api.flutterwave.com/v3/customers');
+    console.log('Validating NIN with VTPass...');
 
-    // Validate NIN with Flutterwave - using full absolute URL
-    const validateUrl = 'https://api.flutterwave.com/v3/customers';
+    const VTPASS_API_KEY = Deno.env.get('VTPASS_API_KEY');
+    const VTPASS_PUBLIC_KEY = Deno.env.get('VTPASS_PUBLIC_KEY');
+    
+    if (!VTPASS_API_KEY || !VTPASS_PUBLIC_KEY) {
+      throw new Error('VTPass API keys not configured');
+    }
+
+    // Validate NIN with VTPass Identity Verification
+    const validateUrl = 'https://api-service.vtpass.com/api/validations';
     const customerValidationResponse = await fetch(validateUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        'api-key': VTPASS_API_KEY,
+        'public-key': VTPASS_PUBLIC_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email,
-        nin,
+        serviceID: 'nin-verification',
+        billersCode: nin,
       }),
     });
 
@@ -109,11 +116,12 @@ Deno.serve(async (req) => {
     const validateData = await customerValidationResponse.json();
     console.log('NIN validation response:', validateData);
 
-    if (validateData.risk_action !== 'allow') {
+    // VTPass returns response_description: "000" for successful verification
+    if (validateData.code !== '000' && validateData.response_description !== '000') {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'NIN not verified—use valid one.',
+          message: validateData.content?.error || 'NIN not verified—use valid one.',
         }),
         {
           status: 400,
