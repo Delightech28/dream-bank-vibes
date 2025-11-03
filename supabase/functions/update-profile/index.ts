@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       throw new Error('FLUTTERWAVE_SECRET_KEY not configured');
     }
 
-    console.log('Validating NIN with Flutterwave...');
+    console.log('Validating NIN with Flutterwave... URL:', 'https://api.flutterwave.com/v3/customers');
 
     // Validate NIN with Flutterwave - using full absolute URL
     const validateUrl = 'https://api.flutterwave.com/v3/customers';
