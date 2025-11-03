@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('Validating NIN with Flutterwave... URL:', 'https://api.flutterwave.com/v3/customers');
+    console.log('Validating NIN with Flutterwave... URL:', 'https://api.flutterwave.com/v3/customers');
 
     // Validate NIN with Flutterwave - using full absolute URL
     const validateUrl = 'https://api.flutterwave.com/v3/customers';
